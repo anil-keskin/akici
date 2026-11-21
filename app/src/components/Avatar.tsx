@@ -1,6 +1,7 @@
 // Konuşan yapay zekâ yüzleri (özgün, SVG). Konuşurken ağız hareket eder, ara sıra göz kırpar.
 import { useEffect, useState } from "react";
 import type { Persona } from "../lib/ai";
+import { Mascot } from "./ui";
 
 export function Avatar({ p, talking = false, listening = false, size = 120 }: { p: Persona; talking?: boolean; listening?: boolean; size?: number }) {
   const [open, setOpen] = useState(0);
@@ -16,6 +17,17 @@ export function Avatar({ p, talking = false, listening = false, size = 120 }: { 
     to = window.setTimeout(loop, 1800);
     return () => clearTimeout(to);
   }, []);
+  if (p.name === "Loki") {
+    // Öğretmen Loki: konuşurken ağzı açılıp kapanır, dinlerken kulak kabartır
+    return (
+      <div style={{ position: "relative", width: size, height: size, flex: "none" }} className={talking ? "loki-talk" : listening ? "loki-listen" : ""}>
+        {(talking || listening) && <div style={{ position: "absolute", inset: -6, borderRadius: "50%", border: `3px solid ${listening ? "var(--coral)" : p.color}`, animation: "pulse 1.2s infinite", opacity: .6 }} />}
+        <div style={{ borderRadius: "50%", background: "color-mix(in srgb, #c9a37a 22%, transparent)", width: size, height: size, display: "grid", placeItems: "center" }}>
+          <Mascot size={size * 0.9} mood={talking ? (open > 0.5 ? "wow" : "happy") : listening ? "think" : blink ? "think" : "happy"} />
+        </div>
+      </div>
+    );
+  }
   const female = p.voice === "female";
   const mouthH = 2 + open * 9;
   return (

@@ -289,3 +289,23 @@ select.input { padding: 10px 12px; }
 .opt { transition: transform .08s; }
 .opt:active { transform: translateY(2px); }
 @media (prefers-reduced-motion: reduce) { .node.now, .path-bubble { animation: none; } }
+
+/* Üst çubuk: her sayfada geri / ileri (kaydırınca da görünür) */
+.topbar { position: sticky; top: 0; z-index: 30; display: flex; align-items: center; gap: 8px; margin: -28px -8px 14px; padding: 10px 8px;
+  background: color-mix(in srgb, var(--bg) 88%, transparent); backdrop-filter: blur(10px); border-bottom: 1px solid var(--line); }
+.topbar-title { flex: 1; text-align: center; font-size: 16px; }
+@media (max-width: 860px) { .topbar { margin: -18px -16px 12px; padding: calc(8px + env(safe-area-inset-top)) 10px 8px; } }
+
+/* Loki animasyonları */
+.loki-bounce { animation: lokiBounce .6s ease-out; }
+.loki-shake { animation: lokiShake .45s ease-in-out; }
+.loki-talk svg { animation: lokiTalk .35s ease-in-out infinite alternate; }
+.loki-listen svg { animation: lokiTilt 1.4s ease-in-out infinite; }
+@keyframes lokiBounce { 0% { transform: translateY(0) scale(.9); } 40% { transform: translateY(-10px) scale(1.05); } 100% { transform: none; } }
+@keyframes lokiShake { 0%, 100% { transform: none; } 25% { transform: rotate(-8deg); } 75% { transform: rotate(8deg); } }
+@keyframes lokiTalk { from { transform: translateY(0); } to { transform: translateY(-2px) rotate(-1.5deg); } }
+@keyframes lokiTilt { 0%, 100% { transform: rotate(0); } 50% { transform: rotate(-7deg); } }
+@media (prefers-reduced-motion: reduce) { .loki-bounce, .loki-shake, .loki-talk svg, .loki-listen svg { animation: none; } }
+
+.chat-head { flex-wrap: wrap; }
+@media (max-width: 520px) { .chat-head > .btn { width: 100%; justify-content: center; } }

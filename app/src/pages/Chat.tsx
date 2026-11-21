@@ -39,6 +39,7 @@ export default function Chat({ params }: { params: URLSearchParams }) {
   const endRef = useRef<HTMLDivElement>(null);
   const chatId = useRef<number | undefined>(undefined);
   const callRef = useRef(false);
+  const [heard, setHeard] = useState("");
   const persona = PERSONAS[mode === "roleplay" && sc ? (["leo", "emma"][sc.id.length % 2]) : MODES[mode].persona];
 
   useEffect(() => { kvGet("level", "A2").then(setLv); }, []);
@@ -60,12 +61,16 @@ export default function Chat({ params }: { params: URLSearchParams }) {
       : MODES[mode].system(lv),
   });
 
+  const hush = useRef(false);
   const say = async (text: string) => {
     if (!tts || !text) return;
+    hush.current = false;
     setTalking(true);
     await speak(text.replace(/[🎉✅🔍⭐📊]/gu, ""), { voice: persona.voice });
     setTalking(false);
   };
+  /** Konuşmayı hemen kes (mikrofona basınca ya da Sustur ile) */
+  const shush = () => { hush.current = true; stopSpeaking(); setTalking(false); };
 
   const send = async (text: string) => {
     const t = text.trim();
@@ -90,7 +95,7 @@ export default function Chat({ params }: { params: URLSearchParams }) {
       if (chatId.current) await db.chats.put({ ...row, id: chatId.current }); else chatId.current = await db.chats.add(row);
       setBusy(false);
       await say(MODES[mode].json ? line.content : line.content.split("\n").filter((l) => !/[çğışöüÇĞİŞÖÜ]/.test(l)).join(" ").slice(0, 500));
-      if (callRef.current) startListening();
+      if (callRef.current && !hush.current) startListening();
     } catch (e) {
       setErr((e as Error).message);
       setBusy(false);
@@ -98,15 +103,17 @@ export default function Chat({ params }: { params: URLSearchParams }) {
   };
 
   async function startListening() {
+    shush(); // konuşuyorsa sustur, sonra dinle
     if (!(await request())) { callRef.current = false; setCall(false); return; }
     const l = new Listener(); lis.current = l;
+    setHeard(""); l.onPartial = setHeard;
     try { await l.start(40, () => stopListening()); setRec(true); } catch (e) { setErr((e as Error).message); callRef.current = false; setCall(false); }
   }
   async function stopListening() {
     if (!lis.current) return;
     setRec(false);
     const h = await lis.current.stop().catch((e) => { setErr((e as Error).message); return null; });
-    lis.current = null;
+    lis.current = null; setHeard("");
     if (h?.text) send(h.text);
     else if (callRef.current) setErr("Seni duyamadım. Mikrofona tekrar bas.");
   }
@@ -129,11 +136,13 @@ export default function Chat({ params }: { params: URLSearchParams }) {
         {(Object.keys(MODES) as Mode[]).map((m) => <button key={m} className={`chip ${mode === m ? "on" : ""}`} onClick={() => { setMode(m); if (m !== "roleplay") setSc(null); }}>{MODES[m].title}</button>)}
         {mode === "roleplay" && !sc && <button className="chip" onClick={() => go("/senaryolar")}>Senaryo seç →</button>}
       </div>
-      <div className="card row" style={{ gap: 18, background: `linear-gradient(135deg, color-mix(in srgb, ${persona.color} 14%, var(--surface)), var(--surface))` }}>
+      <div className="card row chat-head" style={{ gap: 18, background: `linear-gradient(135deg, color-mix(in srgb, ${persona.color} 14%, var(--surface)), var(--surface))` }}>
         <Avatar p={persona} talking={talking} listening={rec} size={96} />
-        <div className="grow">
+        <div className="grow" style={{ minWidth: 160 }}>
           <div className="h3">{persona.name} <span className="muted small">· {sc ? sc.ai : persona.role}</span></div>
-          <div className="muted small">{rec ? "Dinliyorum… bitince mikrofona bas." : talking ? "Konuşuyor…" : busy ? "Düşünüyor…" : call ? "Sesli sohbet açık" : "Yaz ya da sesli sohbeti başlat."}</div>
+          <div className="muted small">{rec ? "Dinliyorum… bitince ■ düğmesine bas." : talking ? "Konuşuyor… (susturmak için Sustur ya da mikrofona bas)" : busy ? "Düşünüyor…" : call ? "Sesli sohbet açık" : "Yaz ya da sesli sohbeti başlat."}</div>
+          {rec && heard && <div className="small" style={{ marginTop: 4, fontStyle: "italic" }}>“{heard}”</div>}
+          {talking && <button className="btn sm coral" style={{ marginTop: 8 }} onClick={shush}><VolumeX size={15} /> Sustur</button>}
         </div>
         {MODES[mode].json && (
           <button className={`btn ${call ? "coral" : "mint"}`} onClick={toggleCall}>{call ? <><PhoneOff size={18} /> Bitir</> : <><Phone size={18} /> Sesli sohbet</>}</button>

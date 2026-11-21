@@ -22,12 +22,17 @@ export interface NativeBridge {
   speak?(text: string, lang: string, rate: number): Promise<void>;
   stopSpeak?(): Promise<void>;
   listen?(lang: string): Promise<{ text: string; alts: string[] }>;
+  /** Ekrana pencere açmadan dinlemeye başlar; ara sonuçlar onPartial ile gelir, susunca onEnd çağrılır */
+  listenStart?(lang: string, onPartial: (t: string) => void, onEnd: () => void): Promise<void>;
+  listenStop?(): Promise<void>;
 }
 export const native: NativeBridge = {};
 
 let currentAudio: HTMLAudioElement | null = null;
+let pendingDone: (() => void) | null = null; // durdurulunca bekleyen konuşma sözünü bitir
 export function stopSpeaking() {
   try { currentAudio?.pause(); } catch { /* */ }
+  const d = pendingDone; pendingDone = null; d?.();
   try { speechSynthesis?.cancel(); } catch { /* */ }
   native.stopSpeak?.();
 }
@@ -61,15 +66,17 @@ export async function speak(text: string, opts: { rate?: number; slow?: boolean;
   const file = map[fnv1a(text.trim())];
   if (file) {
     return new Promise((res) => {
+      pendingDone = res;
       const a = new Audio(`${import.meta.env.BASE_URL}audio/${file}`);
       a.playbackRate = rate; a.preservesPitch = true; currentAudio = a;
       a.onended = () => res(); a.onerror = () => res();
       a.play().catch(() => res());
     });
   }
-  if (native.speak) return native.speak(text, s.accent, rate);
+  if (native.speak) return new Promise((res) => { pendingDone = res; native.speak!(text, s.accent, rate).catch(() => null).finally(() => res()); });
   if (!("speechSynthesis" in window)) return;
   return new Promise((res) => {
+    pendingDone = res;
     const u = new SpeechSynthesisUtterance(text);
     const v = pickVoice(opts.voice); if (v) u.voice = v;
     u.lang = v?.lang || s.accent; u.rate = rate;
@@ -121,13 +128,22 @@ export class Listener {
   private engine: Heard["engine"] = "browser";
   private t0 = 0;
   private timer: number | undefined;
+  /** Konuşurken ara metin (ekranda canlı göstermek için) */
+  onPartial?: (t: string) => void;
 
   async start(maxSec = 20, onAutoStop?: () => void) {
     const s = getSettings();
     const h = s.stt === "browser" ? { ok: false } : await health();
     this.engine = h.ok && (h as Health).whisper && !/kapalı|yok|error/i.test(String((h as Health).whisper)) ? "whisper" : native.listen ? "native" : "browser";
     if (s.stt === "whisper" && this.engine !== "whisper") throw new Error("Whisper sunucusu açık değil. Ayarlar → Sunucu.");
-    if (this.engine === "native") return; // native tek seferde dinler (stop() içinde)
+    if (this.engine === "native") {
+      this.srText = ""; this.t0 = Date.now();
+      if (native.listenStart) {
+        await native.listenStart(s.accent, (t) => { this.srText = t; this.onPartial?.(t); }, () => onAutoStop?.());
+        this.timer = window.setTimeout(() => onAutoStop?.(), maxSec * 1000);
+      }
+      return;
+    }
     this.stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true } });
     this.chunks = [];
     this.rec = new MediaRecorder(this.stream);
@@ -150,8 +166,14 @@ export class Listener {
 
   async stop(): Promise<Heard> {
     clearTimeout(this.timer);
-    if (this.engine === "native" && native.listen) {
-      const r = await native.listen(getSettings().accent);
+    if (this.engine === "native") {
+      if (native.listenStart && native.listenStop) {
+        await native.listenStop();
+        await new Promise((r) => setTimeout(r, 250)); // son ara sonuç gelsin
+        addStat({ speakSec: Math.round((Date.now() - this.t0) / 1000) });
+        return { text: this.srText.trim(), engine: "native" };
+      }
+      const r = await native.listen!(getSettings().accent);
       return { text: r.text, engine: "native" };
     }
     const blob: Blob = await new Promise((res) => {

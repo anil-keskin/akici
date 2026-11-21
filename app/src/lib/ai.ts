@@ -14,7 +14,7 @@ Respond ONLY with a JSON object: {"fix": "", "why": "", "reply": ""}
 
 export interface Persona { name: string; role: string; color: string; skin: string; hair: string; voice: "female" | "male" }
 export const PERSONAS: Record<string, Persona> = {
-  aki: { name: "Aki", role: "Öğretmen", color: "#5b4bff", skin: "#f2c9a5", hair: "#2b1d16", voice: "female" },
+  aki: { name: "Loki", role: "Öğretmen bulldog", color: "#c9a37a", skin: "#f2c9a5", hair: "#2b1d16", voice: "male" },
   sam: { name: "Sam", role: "Sınav görevlisi", color: "#14b892", skin: "#8d5a3b", hair: "#1a1a1a", voice: "male" },
   emma: { name: "Emma", role: "Garson, resepsiyonist…", color: "#ff6b5b", skin: "#f7d7c4", hair: "#c8872f", voice: "female" },
   leo: { name: "Leo", role: "Yönetici, komşu…", color: "#2f9bff", skin: "#d9a27a", hair: "#4a2f1c", voice: "male" },
@@ -142,4 +142,24 @@ export function parseTurn(text: string): Turn {
 /** Model çıktısını düz metne indirger (HTML basılmaz; XSS yok). */
 export function clean(s: string) {
   return s.replace(/<think>[\s\S]*?<\/think>/g, "").replace(/\*\*(.+?)\*\*/g, "$1").replace(/(^|\s)\*(\S[^*]*\S)\*(?=\s|$)/g, "$1$2").trim();
+}
+
+const trCache = new Map<string, string>();
+/** Bir İngilizce cümleyi doğal Türkçeye çevirir (seçili yapay zekâ ile). */
+export async function translateTr(en: string): Promise<string> {
+  const k = en.trim();
+  if (trCache.has(k)) return trCache.get(k)!;
+  const out = clean(await raw([
+    { role: "system", content: "You are a professional English-Turkish translator. Translate the user's English text into natural, correct Turkish. Output ONLY the Turkish translation, nothing else." },
+    { role: "user", content: k.slice(0, 1500) },
+  ], 400, false)).replace(/^["“]|["”]$/g, "").trim();
+  trCache.set(k, out);
+  return out;
+}
+/** Metindeki n. kelimenin geçtiği cümleyi bulur */
+export function sentenceAt(text: string, charPos: number): string {
+  const parts = text.match(/[^.!?…]+[.!?…]+["”’)]*\s*|[^.!?…]+$/g) || [text];
+  let acc = 0;
+  for (const p of parts) { if (charPos < acc + p.length) return p.trim(); acc += p.length; }
+  return parts[parts.length - 1].trim();
 }

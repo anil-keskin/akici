@@ -1,10 +1,11 @@
+import { RotateCcw } from "lucide-react";
 import { AKICI_AI } from "../lib/ai";
 import { useEffect, useState } from "react";
 import { Settings as SetI, Download, Upload, Trash2, ShieldCheck, Server, Sparkles, Volume2, Info } from "lucide-react";
 import { PageHead, toast } from "../components/ui";
 import { saveSettings, useSettings } from "../lib/settings";
 import { englishVoices, health, speak, type Health } from "../lib/speech";
-import { exportAll, importAll, kvGet, kvSet, wipeAll } from "../lib/db";
+import { exportAll, importAll, kvGet, kvSet, resetPart, wipeAll } from "../lib/db";
 import { LEVELS, meta, type Meta } from "../lib/data";
 
 export default function Settings() {
@@ -88,6 +89,19 @@ export default function Settings() {
           <b>Aydınlatma:</b> Lokilingo'nun hesabı, sunucu veritabanı, çerezi ve analitiği yoktur. İlerlemen, kartların ve sohbet geçmişin <b>sadece bu cihazda</b> (tarayıcı veritabanı) tutulur.
           Mikrofon sadece konuşma alıştırmasında açılır; yerel sunucu açıksa ses bu bilgisayarda Whisper ile çözülür ve kalıcı kaydedilmez. Sunucu kapalıysa tarayıcının konuşma tanıması kullanılır (Chrome: Google, Edge: Microsoft).
           AI sohbette yerel model seçiliyse metin bilgisayardan çıkmaz; bulut sağlayıcı seçersen metin o sağlayıcıya gider. <b>Loki AI</b> seçiliyse yazdığın metin Lokilingo'nun aracı sunucusu (Cloudflare, ABD) üzerinden Cloudflare Workers AI'ya (bazen Google Gemini'ye) iletilir; aracı sunucu metni kaydetmez ve loglamaz, sadece kötüye kullanımı önlemek için IP adresine ve rastgele bir cihaz numarasına göre dakikalık sayaç tutar. Bu yurtdışına aktarımdır (KVKK md. 9): sohbete kişisel bilgi yazma. İstediğin an verilerini dışa aktarabilir ya da tamamen silebilirsin (KVKK md. 11).
+        </div>
+        <div className="card col" style={{ gap: 8 }}>
+          <b>İlerlemeyi sıfırla</b>
+          <div className="muted small">Ayarların ve izinlerin korunur. Silinen veri geri gelmez; önce yedek indirebilirsin.</div>
+          <div className="row wrap" style={{ gap: 6 }}>
+            {([["cards", "Kelime destesi ve tekrarlar"], ["reading", "Okuma / ders kaldığım yerler"], ["stats", "XP, seri ve istatistikler"], ["chats", "AI sohbet geçmişi"], ["all-progress", "Hepsini sıfırla (baştan başla)"]] as const).map(([k, l]) => (
+              <button key={k} className={`btn sm ${k === "all-progress" ? "coral" : "ghost"}`} onClick={async () => {
+                if (!confirm(`“${l}” sıfırlansın mı? Bu geri alınamaz.`)) return;
+                await resetPart(k); toast("Sıfırlandı");
+                if (k === "all-progress") { await kvSet("onboarded", false); location.hash = "#/basla"; }
+              }}><RotateCcw size={14} /> {l}</button>
+            ))}
+          </div>
         </div>
         <div className="row wrap">
           <button className="btn ghost" onClick={doExport}><Download size={16} /> Yedeği indir</button>

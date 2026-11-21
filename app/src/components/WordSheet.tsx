@@ -67,6 +67,16 @@ export function WordView({ w }: { w: Word }) {
   );
 }
 
-export function WordSheet({ w, onClose }: { w: Word | null; onClose: () => void }) {
-  return <Sheet open={!!w} onClose={onClose}>{w && <WordView w={w} />}</Sheet>;
+export function WordSheet({ w, onClose, onPrev, onNext }: { w: Word | null; onClose: () => void; onPrev?: () => void; onNext?: () => void }) {
+  return (
+    <Sheet open={!!w} onClose={onClose}>
+      {w && (onPrev || onNext) && (
+        <div className="row between" style={{ marginBottom: 10 }}>
+          <button className="btn sm ghost" disabled={!onPrev} onClick={onPrev}>‹ Önceki kelime</button>
+          <button className="btn sm ghost" disabled={!onNext} onClick={onNext}>Sonraki kelime ›</button>
+        </div>
+      )}
+      {w && <WordView key={w.id} w={w} />}
+    </Sheet>
+  );
 }

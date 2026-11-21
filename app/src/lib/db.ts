@@ -77,3 +77,16 @@ export async function wipeAll() {
   await db.delete();
   try { localStorage.clear(); } catch { /* yok */ }
 }
+
+/** Seçerek sıfırlama: ayarlar ve onaylar korunur */
+export async function resetPart(part: "cards" | "reading" | "stats" | "chats" | "all-progress") {
+  const t = {
+    cards: [db.cards, db.logs],
+    reading: [db.progress],
+    stats: [db.days],
+    chats: [db.chats],
+    "all-progress": [db.cards, db.logs, db.progress, db.days, db.chats, db.media],
+  }[part];
+  await db.transaction("rw", t, async () => { for (const x of t) await x.clear(); });
+  if (part === "all-progress") { await kvSet("level", "A1"); }
+}

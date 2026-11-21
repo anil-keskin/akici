@@ -1,9 +1,9 @@
 import { lazy, Suspense, useEffect, type ComponentType } from "react";
 import {
   Home as HomeI, BookOpen, Repeat, GraduationCap, Quote, Headphones, Mic, BookMarked, Theater, MessageCircle,
-  BarChart3, Settings as SetI, LayoutGrid, Library, Clapperboard,
+  BarChart3, Settings as SetI, LayoutGrid, Library, Clapperboard, ChevronLeft, ChevronRight,
 } from "lucide-react";
-import { go, useRoute } from "./lib/router";
+import { back, go, useRoute } from "./lib/router";
 import { Mascot, Spinner, ToastHost, ConfettiHost, toast } from "./components/ui";
 import { kvGet } from "./lib/db";
 
@@ -55,6 +55,10 @@ const NAV = [
   { to: "/ilerleme", label: "İlerleme", icon: BarChart3 },
   { to: "/ayarlar", label: "Ayarlar", icon: SetI },
 ] as const;
+const TITLES: Record<string, string> = Object.fromEntries([
+  ...NAV.filter((n) => "to" in n).map((n) => [(n as { to: string }).to, (n as { label: string }).label]),
+  ["/ogren", "Öğren"], ["/test", "Seviye testi"],
+]);
 const TABS = [
   { to: "/", label: "Bugün", icon: HomeI, match: ["/", "/ders", "/tekrar"] },
   { to: "/ogren", label: "Öğren", icon: LayoutGrid, match: ["/ogren", "/kelimeler", "/gramer", "/kaliplar", "/okuma", "/medya"] },
@@ -86,6 +90,13 @@ export default function App() {
         </aside>
       )}
       <main className={focus ? "" : "main"} style={focus ? { padding: "18px 16px 40px" } : undefined}>
+        {!focus && base !== "/" && (
+          <div className="topbar">
+            <button className="btn icon" aria-label="Geri" onClick={() => back(id ? base : "/")}><ChevronLeft size={22} /></button>
+            <b className="topbar-title">{TITLES[base] || "Lokilingo"}</b>
+            <button className="btn icon" aria-label="İleri" onClick={() => history.forward()}><ChevronRight size={22} /></button>
+          </div>
+        )}
         <div className="page">
           <Suspense fallback={<Spinner />}>
             <Page id={id} params={params} />

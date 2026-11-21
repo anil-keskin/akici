@@ -7,6 +7,7 @@ import { addCard, cardId } from "../lib/srs";
 import { speak, stopSpeaking } from "../lib/speech";
 import { addStat } from "../lib/stats";
 import { go } from "../lib/router";
+import { sentenceAt, translateTr } from "../lib/ai";
 
 export interface BookMeta { id: string; title: string; author: string; lv: Level; kind: "story" | "book" | "tiny" | "wiki"; chapters: number; words: number; blurb: string; gen?: number }
 interface Chapter { title: string; p: string[]; tr?: string[] }
@@ -81,7 +82,8 @@ function BookCard({ b }: { b: BookMeta }) {
 
 function Reader({ id, ch }: { id: string; ch: number }) {
   const [book, setBook] = useState<{ meta: BookMeta; chapters: Chapter[] } | null>(null);
-  const [sel, setSel] = useState<{ tok: string; w?: Word; pi: number } | null>(null);
+  const [sel, setSel] = useState<{ tok: string; w?: Word; pi: number; ti: number } | null>(null);
+  const [sent, setSent] = useState<{ en: string; tr?: string; err?: string } | null>(null);
   const [deck, setDeck] = useState<Set<string>>(new Set());
   const [showTr, setShowTr] = useState<Set<number>>(new Set());
   const [reading, setReading] = useState<number | null>(null);
@@ -99,7 +101,14 @@ function Reader({ id, ch }: { id: string; ch: number }) {
   const chapter = book?.chapters[ch];
   const paras = useMemo(() => chapter?.p.map((p) => p.split(/(\s+|[.,!?;:"“”()—-]+)/)) || [], [chapter]);
   if (!book || !chapter) return <Spinner />;
-  const tap = async (tok: string, pi: number) => { setSel({ tok, pi }); const w = await findWord(tok); setSel({ tok, w, pi }); };
+  const tap = async (tok: string, pi: number, ti: number) => { setSent(null); setSel({ tok, pi, ti }); const w = await findWord(tok); setSel({ tok, w, pi, ti }); };
+  const transSentence = async () => {
+    if (!sel) return;
+    const pos = paras[sel.pi].slice(0, sel.ti).join("").length;
+    const en = sentenceAt(chapter.p[sel.pi], pos);
+    setSent({ en });
+    try { setSent({ en, tr: await translateTr(en) }); } catch (e) { setSent({ en, err: (e as Error).message }); }
+  };
   const readPara = async (pi: number) => {
     if (reading === pi) { stopSpeaking(); setReading(null); return; }
     setReading(pi); await speak(chapter.p[pi]); setReading(null);
@@ -123,7 +132,7 @@ function Reader({ id, ch }: { id: string; ch: number }) {
           <div key={pi} style={{ position: "relative" }}>
             <p>
               {toks.map((t, ti) => /^[A-Za-z’']+$/.test(t)
-                ? <span key={ti} className={`tok ${sel?.pi === pi && sel.tok === t ? "sel" : deck.has(t.toLowerCase()) ? "learning" : ""}`} onClick={() => tap(t, pi)}>{t}</span>
+                ? <span key={ti} className={`tok ${sel?.pi === pi && sel.tok === t ? "sel" : deck.has(t.toLowerCase()) ? "learning" : ""}`} onClick={() => tap(t, pi, ti)}>{t}</span>
                 : <span key={ti}>{t}</span>)}
             </p>
             <div className="row" style={{ marginTop: -10, marginBottom: 16, gap: 6 }}>
@@ -148,11 +157,16 @@ function Reader({ id, ch }: { id: string; ch: number }) {
               {sel.w && <button className="btn icon primary" aria-label="Desteye ekle" disabled={deck.has(sel.w.w)} onClick={async () => {
                 await addCard("word", sel.w!.id); setDeck(new Set([...deck, sel.w!.w, ...sel.w!.f])); toast("Desteye eklendi");
               }}>{deck.has(sel.w.w) ? <Check size={18} /> : <Plus size={18} />}</button>}
-              <button className="btn icon" aria-label="Kapat" onClick={() => setSel(null)}>✕</button>
+              <button className="btn icon" aria-label="Kapat" onClick={() => { setSel(null); setSent(null); }}>✕</button>
             </div>
           </div>
           <div style={{ marginTop: 6, fontWeight: 650 }}>{sel.w ? (sel.w.tr.slice(0, 3).join(" · ") || sel.w.d[0]?.g) : "Sözlükte yok (özel isim olabilir)."}</div>
           {sel.w && sel.w.d[0] && sel.w.tr.length > 0 && <div className="muted small">{sel.w.d[0].g}</div>}
+          {!sent ? <button className="btn sm ghost" style={{ marginTop: 8 }} onClick={transSentence}><Languages size={14} /> Bu cümleyi çevir</button>
+            : <div className="card small" style={{ marginTop: 8, padding: "8px 10px", background: "var(--iris-soft)" }}>
+                <div className="muted tiny" style={{ fontStyle: "italic" }}>{sent.en}</div>
+                <div style={{ fontWeight: 600, marginTop: 4 }}>{sent.err ? `Çevrilemedi: ${sent.err}` : sent.tr ?? "Çevriliyor…"}</div>
+              </div>}
         </div>
       )}
     </div>

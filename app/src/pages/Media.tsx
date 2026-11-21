@@ -10,6 +10,7 @@ import { speak, stopSpeaking } from "../lib/speech";
 import { addStat } from "../lib/stats";
 import { sfx } from "../lib/sfx";
 import { go } from "../lib/router";
+import { translateTr } from "../lib/ai";
 
 interface Song { id: string; title: string; lv: string; by: string; lines: [string, string][] }
 interface Expr { en: string; tr: string; note: string; cat: string }
@@ -71,6 +72,12 @@ function LinePlayer({ title, sub, lines, back, video, onDelete }: { title: strin
   const [playing, setPlaying] = useState<number | null>(null);
   const [word, setWord] = useState<{ tok: string; w?: Word } | null>(null);
   const [cur, setCur] = useState(-1);
+  const [lineTr, setLineTr] = useState<Record<number, string>>({});
+  const trLine = async (i: number) => {
+    setLineTr((m) => ({ ...m, [i]: "Çevriliyor…" }));
+    try { const t = await translateTr(lines[i].en); setLineTr((m) => ({ ...m, [i]: t })); }
+    catch (e) { setLineTr((m) => ({ ...m, [i]: `Çevrilemedi: ${(e as Error).message}` })); }
+  };
   const stop = useRef(false);
   const frame = useRef<HTMLIFrameElement>(null);
   const vid = useRef<HTMLVideoElement>(null);
@@ -130,10 +137,12 @@ function LinePlayer({ title, sub, lines, back, video, onDelete }: { title: strin
                   </div>
                   <div className="row" style={{ gap: 4 }}>
                     {l.t !== undefined && (yt || localUrl) && <button className="btn icon sm" aria-label="Videoda bu satıra git" onClick={() => seek(l.t)}><Play size={14} /></button>}
+                    {!l.tr && <button className="btn icon sm" aria-label="Satırı çevir" onClick={() => trLine(i)}><Languages size={14} /></button>}
                     <AudioBtn text={l.en} size={16} />
                   </div>
                 </div>
                 {tr && l.tr && <div className="muted small">{l.tr}</div>}
+                {lineTr[i] && <div className="muted small">{lineTr[i]}</div>}
               </div>
             ))}
           </div>

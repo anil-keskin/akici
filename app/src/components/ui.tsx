@@ -32,8 +32,9 @@ export function Bar({ value, cls = "" }: { value: number; cls?: string }) {
 
 export function Spinner({ label }: { label?: string }) {
   return (
-    <div className="row" style={{ justifyContent: "center", padding: 40, color: "var(--ink-3)" }}>
-      <Loader2 size={22} style={{ animation: "spin 1s linear infinite" }} />{label}
+    <div className="col" style={{ alignItems: "center", padding: 40, color: "var(--ink-3)", gap: 8 }}>
+      <div className="loki-bounce"><Mascot size={56} /></div>
+      <div className="row small" style={{ gap: 6 }}><Loader2 size={16} style={{ animation: "spin 1s linear infinite" }} />{label || " Yükleniyor…"}</div>
     </div>
   );
 }

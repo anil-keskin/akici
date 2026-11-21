@@ -10,13 +10,38 @@ export async function setupNative() {
     native.stopSpeak = async () => { await TextToSpeech.stop(); };
   } catch { /* eklenti yok */ }
   try {
+    const { App } = await import("@capacitor/app");
+    App.addListener("backButton", () => {
+      const h = location.hash.replace(/^#/, "") || "/";
+      // Açık bir pencere (alt sayfa) varsa önce onu kapat
+      const sheet = document.querySelector<HTMLElement>(".sheet-back");
+      if (sheet) { sheet.click(); return; }
+      window.dispatchEvent(new CustomEvent("akici-back"));
+      if (h === "/" ) App.minimizeApp();
+      else if (history.length > 1) history.back();
+      else location.hash = "#/";
+    });
+  } catch { /* eklenti yok */ }
+  try {
     const { SpeechRecognition } = await import("@capacitor-community/speech-recognition");
-    native.listen = async (lang) => {
+    const ensurePerm = async () => {
       const perm = await SpeechRecognition.requestPermissions();
       if (perm.speechRecognition !== "granted") throw new Error("Mikrofon izni verilmedi");
-      const r = await SpeechRecognition.start({ language: lang, maxResults: 3, partialResults: false, popup: true });
+    };
+    native.listen = async (lang) => {
+      await ensurePerm();
+      const r = await SpeechRecognition.start({ language: lang, maxResults: 3, partialResults: false, popup: false });
       const alts = r?.matches || [];
       return { text: alts[0] || "", alts };
     };
+    // Google penceresi açmadan dinle: ara sonuçlar canlı gelir, susunca biter
+    native.listenStart = async (lang, onPartial, onEnd) => {
+      await ensurePerm();
+      await SpeechRecognition.removeAllListeners();
+      await SpeechRecognition.addListener("partialResults", (d: { matches?: string[] }) => { if (d?.matches?.[0]) onPartial(d.matches[0]); });
+      await SpeechRecognition.addListener("listeningState", (d: { status?: string }) => { if (d?.status === "stopped") onEnd(); });
+      await SpeechRecognition.start({ language: lang, maxResults: 3, partialResults: true, popup: false });
+    };
+    native.listenStop = async () => { try { await SpeechRecognition.stop(); } catch { /* zaten durdu */ } };
   } catch { /* eklenti yok */ }
 }

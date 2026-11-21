@@ -4,7 +4,7 @@ import { Lv, PageHead, Spinner, toast, AudioBtn, Bar } from "../components/ui";
 import { WordSheet } from "../components/WordSheet";
 import { LEVELS, LEVEL_TR, POS_TR, words, type Level, type Word } from "../lib/data";
 import { db } from "../lib/db";
-import { addCard } from "../lib/srs";
+import { addCard, cardId } from "../lib/srs";
 import { getSettings } from "../lib/settings";
 import { norm } from "../lib/grade";
 
@@ -15,7 +15,8 @@ export default function Words() {
   const [q, setQ] = useState("");
   const [lv, setLv] = useState<Level | "all">("A1");
   const [pos, setPos] = useState<string>("");
-  const [limit, setLimit] = useState(80);
+  const [page, setPage] = useState(0);
+  const [lastBatch, setLastBatch] = useState<number[]>([]);
   const [open, setOpen] = useState<Word | null>(null);
   const [deck, setDeck] = useState<Set<number>>(new Set());
   useEffect(() => {
@@ -31,15 +32,32 @@ export default function Words() {
       return (lv === "all" || w.lv === lv) && (!pos || w.pos[0] === pos);
     });
   }, [all, q, lv, pos]);
-  useEffect(() => setLimit(80), [q, lv, pos]);
+  useEffect(() => setPage(0), [q, lv, pos]);
   if (!all) return <Spinner label=" 20.000 kelime yükleniyor…" />;
   const known = list.filter((w) => deck.has(w.id)).length;
   const addNext = async (n: number) => {
     const todo = list.filter((w) => !deck.has(w.id) && (w.tr.length || w.d.length)).slice(0, n);
     for (const w of todo) await addCard("word", w.id);
     setDeck(new Set([...deck, ...todo.map((w) => w.id)]));
+    setLastBatch(todo.map((w) => w.id));
     toast(`${todo.length} kelime desteye eklendi`);
   };
+  const undoBatch = async () => {
+    await db.cards.bulkDelete(lastBatch.map((id) => cardId("word", id)));
+    const d = new Set(deck); lastBatch.forEach((id) => d.delete(id)); setDeck(d);
+    toast(`${lastBatch.length} kelime desteden çıkarıldı`); setLastBatch([]);
+  };
+  const PER = 50;
+  const pages = Math.max(1, Math.ceil(list.length / PER));
+  const shown = list.slice(page * PER, page * PER + PER);
+  const openIdx = open ? list.findIndex((w) => w.id === open.id) : -1;
+  const pager = list.length > PER && (
+    <div className="row between" style={{ padding: "8px 4px" }}>
+      <button className="btn sm" disabled={page === 0} onClick={() => { setPage(page - 1); window.scrollTo({ top: 0 }); }}>‹ Önceki {PER}</button>
+      <span className="muted small">{page * PER + 1}–{Math.min(list.length, page * PER + PER)} / {list.length.toLocaleString("tr")}</span>
+      <button className="btn sm" disabled={page + 1 >= pages} onClick={() => { setPage(page + 1); window.scrollTo({ top: 0 }); }}>Sonraki {PER} ›</button>
+    </div>
+  );
   return (
     <div>
       <PageHead title="Kelimeler" sub={`${all.length.toLocaleString("tr")} kelime · en sık kullanılandan başlayarak. İlk 2.000 kelime günlük konuşmanın ~%80'ini kapsar.`}
@@ -64,15 +82,19 @@ export default function Words() {
                 <div className="small muted">{known} / {list.length} kelime destende</div>
                 <Bar value={list.length ? known / list.length : 0} cls="mint" />
               </div>
-              <button className="btn primary sm" onClick={() => addNext(20)}><Plus size={16} /> Sıradaki 20'yi öğren</button>
+              <div className="row" style={{ gap: 6 }}>
+                {lastBatch.length > 0 && <button className="btn sm ghost" onClick={undoBatch}>↶ Son {lastBatch.length}'yi geri al</button>}
+                <button className="btn primary sm" onClick={() => addNext(20)}><Plus size={16} /> Sıradaki 20'yi öğren</button>
+              </div>
             </div>
           </>
         )}
       </div>
       <div className="sp" />
       <div className="card" style={{ padding: 8 }}>
+        {pager}
         <div className="list">
-          {list.slice(0, limit).map((w) => (
+          {shown.map((w) => (
             <div key={w.id} className="li" onClick={() => setOpen(w)}>
               <span className="muted tiny" style={{ width: 44, textAlign: "right" }}>{w.id}</span>
               <div className="grow">
@@ -88,10 +110,12 @@ export default function Words() {
             </div>
           ))}
         </div>
-        {list.length > limit && <button className="btn ghost block" style={{ marginTop: 8 }} onClick={() => setLimit(limit + 120)}>Daha fazla göster ({(list.length - limit).toLocaleString("tr")})</button>}
+        {pager}
         {!list.length && <div className="muted" style={{ padding: 20, textAlign: "center" }}>Sonuç yok.</div>}
       </div>
-      <WordSheet w={open} onClose={() => setOpen(null)} />
+      <WordSheet w={open} onClose={() => setOpen(null)}
+        onPrev={openIdx > 0 ? () => setOpen(list[openIdx - 1]) : undefined}
+        onNext={openIdx >= 0 && openIdx + 1 < list.length ? () => setOpen(list[openIdx + 1]) : undefined} />
     </div>
   );
 }

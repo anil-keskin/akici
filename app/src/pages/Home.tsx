@@ -66,7 +66,10 @@ export default function Home() {
               {st.shield && <span className="chip" style={{ background: "rgba(255,255,255,.18)", color: "#fff" }} title="Bu hafta bir boş günün affedildi"><ShieldCheck size={16} /> Kalkan</span>}
               <span className="chip" style={{ background: "rgba(255,255,255,.18)", color: "#fff" }}><Trophy size={16} /> Seviye {st.lvl.lvl}</span>
             </div>
-            <h1 className="h1" style={{ color: "#fff" }}>{hello()}{name ? `, ${name}` : ""}!</h1>
+            <div className="row" style={{ gap: 12 }}>
+              <div className="loki-bounce" style={{ background: "rgba(255,255,255,.9)", borderRadius: "50%", padding: 4, flex: "none" }}><Mascot size={58} /></div>
+              <h1 className="h1" style={{ color: "#fff" }}>{hello()}{name ? `, ${name}` : ""}!</h1>
+            </div>
             <div className="sub">{st.due > 0 ? `${st.due} kart tekrarını bekliyor. ` : ""}Bugünkü dersin hazır: yeni kelimeler, gramer, dinleme ve konuşma karışık.</div>
             <div className="row wrap" style={{ marginTop: 8 }}>
               <button className="btn big white" onClick={() => go("/ders")}><Sparkles size={20} /> {st.xp > 0 ? "Devam et" : "Günün dersine başla"}</button>

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Check, X, Volume2, Mic, Square, ArrowRight, Lightbulb, RotateCcw } from "lucide-react";
-import { AudioBtn, Lv, useMicConsent } from "./ui";
+import { AudioBtn, Lv, Mascot, useMicConsent } from "./ui";
 import { check, alignWords, scoreOf, norm } from "../lib/grade";
 import { speak, Listener, type Heard } from "../lib/speech";
 import { shuffle, POS_TR, type Word } from "../lib/data";
@@ -18,7 +18,7 @@ export function Feedback({ r, answer, extra, onNext }: { r: Result | null; answe
   const good = r === "ok" || r === "typo";
   return (
     <div className={`feedback pop ${good ? "ok" : "bad"}`}>
-      <div className="ico" style={{ background: good ? "var(--mint)" : "var(--coral)", color: "#fff" }}>{good ? <Check /> : <X />}</div>
+      <div className={good ? "loki-bounce" : "loki-shake"} style={{ flex: "none" }}><Mascot size={54} mood={good ? "happy" : "sad"} /></div>
       <div className="grow">
         <div style={{ fontWeight: 800, fontSize: 18 }}>{r === "ok" ? "Harika!" : r === "typo" ? "Neredeyse — küçük bir yazım farkı" : r === "skip" ? "Geçildi" : "Doğrusu:"}</div>
         {answer && <div style={{ fontWeight: 650 }}>{answer}</div>}
