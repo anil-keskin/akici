@@ -62,16 +62,15 @@ export default function Settings() {
       </Sec>
 
       <Sec t="Yapay zekâ" i={<Sparkles />}>
-        <Row l="Sağlayıcı"><select className="input" value={s.aiProvider} onChange={(e) => {
-          const p = e.target.value as "local";
-          saveSettings({ aiProvider: p, aiModel: p === "local" ? "qwen3:8b" : p === "anthropic" ? "claude-haiku-5-5" : "gpt-4o-mini" });
+        <Row l="Sağlayıcı"><select className="input" value={presetOf(s)} onChange={(e) => {
+          const pr = PRESETS.find((x) => x.id === e.target.value)!;
+          saveSettings({ aiProvider: pr.p, aiModel: pr.model, ...(pr.base ? { aiBase: pr.base } : {}) });
         }}>
-          <option value="local">Yerel (Ollama) — ücretsiz, veri bilgisayardan çıkmaz</option>
-          <option value="anthropic">Anthropic Claude — kendi anahtarın</option>
-          <option value="openai">OpenAI uyumlu — kendi anahtarın</option>
+          {PRESETS.map((x) => <option key={x.id} value={x.id}>{x.label}</option>)}
         </select></Row>
+        {PRESETS.find((x) => x.id === presetOf(s))?.hint && <div className="muted small">{PRESETS.find((x) => x.id === presetOf(s))!.hint}</div>}
         <Row l="Model"><input className="input" value={s.aiModel} onChange={(e) => saveSettings({ aiModel: e.target.value.trim() })} /></Row>
-        {s.aiProvider === "openai" && <Row l="API adresi"><input className="input" value={s.aiBase} onChange={(e) => saveSettings({ aiBase: e.target.value.trim() })} /></Row>}
+        {presetOf(s) === "custom" && <Row l="API adresi"><input className="input" value={s.aiBase} onChange={(e) => saveSettings({ aiBase: e.target.value.trim() })} /></Row>}
         {s.aiProvider !== "local" && (
           <>
             <Row l="API anahtarı"><input className="input" type="password" autoComplete="off" value={s.aiKey} onChange={(e) => saveSettings({ aiKey: e.target.value.trim() })} /></Row>
@@ -114,4 +113,23 @@ function Sec({ t, i, children }: { t: string; i?: React.ReactNode; children: Rea
 }
 function Row({ l, children }: { l: string; children: React.ReactNode }) {
   return <label className="row between wrap" style={{ gap: 12 }}><span className="small" style={{ fontWeight: 650, minWidth: 180 }}>{l}</span><div style={{ flex: "1 1 260px", maxWidth: 420, display: "flex", justifyContent: "flex-end" }}>{children}</div></label>;
+}
+
+type Prov = "local" | "openai" | "anthropic";
+const PRESETS: { id: string; label: string; p: Prov; model: string; base?: string; hint?: string }[] = [
+  { id: "local", label: "Yerel (Ollama) — ücretsiz, veri bilgisayardan çıkmaz", p: "local", model: "qwen3:8b" },
+  { id: "gemini", label: "Google Gemini — ücretsiz kota", p: "openai", model: "gemini-flash-latest", base: "https://generativelanguage.googleapis.com/v1beta/openai",
+    hint: "Anahtar: aistudio.google.com → Get API key (kart gerekmez). Ücretsiz kotada Google yazdıklarını ürün geliştirmek için kullanabilir; kişisel bilgi yazma." },
+  { id: "deepseek", label: "DeepSeek — çok ucuz", p: "openai", model: "deepseek-chat", base: "https://api.deepseek.com/v1",
+    hint: "Anahtar: platform.deepseek.com → API keys (kredi yüklenir). Sunucular Çin'de; kişisel bilgi yazma." },
+  { id: "anthropic", label: "Anthropic Claude (Haiku) — ucuz, kaliteli", p: "anthropic", model: "claude-haiku-5-5", hint: "Anahtar: console.anthropic.com → API Keys. Aylık harcama sınırı koy." },
+  { id: "openrouter", label: "OpenRouter — tek anahtarla birçok model", p: "openai", model: "deepseek/deepseek-chat", base: "https://openrouter.ai/api/v1",
+    hint: "Anahtar: openrouter.ai/keys. Model kutusuna istediğin modelin adını yazabilirsin." },
+  { id: "openai", label: "OpenAI (ChatGPT)", p: "openai", model: "gpt-4o-mini", base: "https://api.openai.com/v1", hint: "Anahtar: platform.openai.com → API keys." },
+  { id: "custom", label: "Başka (OpenAI uyumlu adres)", p: "openai", model: "", hint: "API adresini ve model adını kendin gir." },
+];
+function presetOf(s: { aiProvider: string; aiBase: string }) {
+  if (s.aiProvider !== "openai") return s.aiProvider;
+  const base = s.aiBase.replace(/\/$/, "");
+  return PRESETS.find((x) => x.base && x.base === base)?.id || "custom";
 }

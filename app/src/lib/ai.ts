@@ -68,12 +68,14 @@ async function raw(messages: Msg[], maxTokens: number, json: boolean): Promise<s
   }
   if (!s.aiKey) throw new Error("API anahtarı girilmemiş (Ayarlar → Yapay zekâ).");
   if (s.aiProvider === "openai") {
-    const r = await fetch(`${s.aiBase.replace(/\/$/, "")}/chat/completions`, {
+    const call = (fmt: boolean) => fetch(`${s.aiBase.replace(/\/$/, "")}/chat/completions`, {
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${s.aiKey}` },
-      body: JSON.stringify({ model: s.aiModel || "gpt-4o-mini", messages, max_tokens: maxTokens, temperature: 0.7, ...(json ? { response_format: { type: "json_object" } } : {}) }),
+      body: JSON.stringify({ model: s.aiModel || "gpt-4o-mini", messages, max_tokens: Math.max(maxTokens, 1024), temperature: 0.7, ...(fmt ? { response_format: { type: "json_object" } } : {}) }),
     });
-    if (!r.ok) throw new Error(`API hatası ${r.status}`);
+    let r = await call(json);
+    if (json && r.status === 400) r = await call(false); // JSON modunu desteklemeyen sağlayıcı: düz metinle tekrar dene
+    if (!r.ok) throw new Error(r.status === 401 || r.status === 403 ? "API anahtarı geçersiz (Ayarlar → Yapay zekâ)." : r.status === 429 ? "Kota doldu ya da çok hızlı istek; biraz sonra dene." : r.status === 402 ? "Hesapta kredi yok." : `API hatası ${r.status}`);
     const d = await r.json();
     return d.choices?.[0]?.message?.content ?? "";
   }
