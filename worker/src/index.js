@@ -93,9 +93,13 @@ export default {
       for (const model of ["llama-3.3-70b-versatile", "openai/gpt-oss-120b", "openai/gpt-oss-20b"]) {
         const g = await fetch("https://api.groq.com/openai/v1/chat/completions", {
           method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${env.GROQ_KEY}` },
-          body: JSON.stringify({ model, messages: clean, max_tokens: maxTokens, ...(body.json ? { response_format: { type: "json_object" } } : {}) }),
+          body: JSON.stringify({
+            model, messages: clean, ...(body.json ? { response_format: { type: "json_object" } } : {}),
+            // gpt-oss düşünen modeldir: düşünmeyi kısa tut ki cevap yarıda kesilmesin
+            ...(model.startsWith("openai/") ? { reasoning_effort: "low", reasoning_format: "hidden", max_completion_tokens: maxTokens + 1500 } : { max_tokens: maxTokens }),
+          }),
         });
-        if (g.ok) { const gd = await g.json(); return json({ content: gd.choices?.[0]?.message?.content ?? "", via: "groq" }); }
+        if (g.ok) { const gd = await g.json(); return json({ content: gd.choices?.[0]?.message?.content ?? "", via: "groq:" + model }); }
         if (![400, 404].includes(g.status)) break; // kota doldu vb.: sonraki plana geç
       }
     }
