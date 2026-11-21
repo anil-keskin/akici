@@ -61,7 +61,7 @@ Explain grammar, words, idioms or differences clearly with 3-5 short English exa
 export type Mode = keyof typeof MODES;
 
 // Herkese açık Akıcı AI aracı (Cloudflare Worker). Adres gizli değildir; anahtar sunucuda durur.
-export const AKICI_AI = "";
+export const AKICI_AI = "https://akici-ai.akici-app.workers.dev";
 function deviceId(): string {
   try {
     let id = localStorage.getItem("akici-device");

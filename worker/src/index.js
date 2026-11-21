@@ -1,7 +1,10 @@
 // Akıcı AI aracı: uygulama → bu Worker → Gemini. API anahtarı sadece Cloudflare'in gizli ayarında (GEMINI_KEY) durur.
 // Güvenlik: sadece POST /chat, boyut sınırları, IP + cihaz başına hız sınırı, sabit model, içerik LOGLANMAZ.
 // Ücret güvencesi: faturalandırması KAPALI (ücretsiz kota) bir Gemini anahtarı kullan; en kötü durumda kota dolar, fatura çıkmaz.
-const MODEL = "gemini-flash-latest";
+// Sırayla denenir: ücretsiz kotada açık olan ilk model kullanılır
+const MODELS = ["gemini-flash-latest", "gemini-flash-lite-latest", "gemini-2.5-flash", "gemini-2.5-flash-lite", "gemini-2.0-flash"];
+const MODEL = MODELS[0];
+const CF_MODEL = "@cf/meta/llama-3.3-70b-instruct-fp8-fast";
 const UPSTREAM = "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions";
 const CORS = { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Methods": "POST, OPTIONS", "Access-Control-Allow-Headers": "Content-Type, X-Akici-Device", "Access-Control-Max-Age": "86400" };
 
@@ -13,7 +16,6 @@ export default {
     if (req.method === "OPTIONS") return new Response(null, { status: 204, headers: CORS });
     if (url.pathname === "/health") return json({ ok: true, model: MODEL });
     if (req.method !== "POST" || url.pathname !== "/chat") return json({ error: "bulunamadı" }, 404);
-    if (!env.GEMINI_KEY) return json({ error: "sunucu ayarlanmamış" }, 503);
 
     const ip = req.headers.get("CF-Connecting-IP") || "?";
     const device = (req.headers.get("X-Akici-Device") || "").slice(0, 64) || ip;
@@ -32,15 +34,30 @@ export default {
     }
     const maxTokens = Math.min(Math.max(Number(body.max_tokens) || 600, 50), 1200);
 
-    const call = (fmt) => fetch(UPSTREAM, {
+    const call = (model, fmt) => fetch(UPSTREAM, {
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${env.GEMINI_KEY}` },
-      body: JSON.stringify({ model: MODEL, messages: clean, max_tokens: maxTokens, temperature: 0.7, ...(fmt ? { response_format: { type: "json_object" } } : {}) }),
+      body: JSON.stringify({ model, messages: clean, max_tokens: maxTokens, ...(fmt ? { response_format: { type: "json_object" } } : {}) }),
     });
-    let r = await call(!!body.json);
-    if (body.json && r.status === 400) r = await call(false);
-    if (r.status === 429) return json({ error: "günlük ücretsiz kota doldu; yarın tekrar dene" }, 429);
-    if (!r.ok) return json({ error: `yapay zekâ hatası ${r.status}` }, 502);
+    let r, why = "";
+    for (const model of env.GEMINI_KEY ? MODELS : []) {
+      r = await call(model, !!body.json);
+      if (body.json && r.status === 400) r = await call(model, false);
+      if (r.ok) break;
+      why = (await r.text().catch(() => "")).slice(0, 200);
+      if (![400, 402, 403, 404].includes(r.status)) break; // kota/sunucu hatası: başka model deneme
+    }
+    if (!r || !r.ok) {
+      // Gemini kullanılamıyorsa (kota/kredi/anahtar): Cloudflare Workers AI yedeği
+      try {
+        const out = await env.AI.run(CF_MODEL, { messages: clean, max_tokens: maxTokens });
+        const text = typeof out?.response === "string" ? out.response : JSON.stringify(out?.response ?? "");
+        return json({ content: text, via: "cf" });
+      } catch (e) {
+        if (String(e).includes("4006") || String(e).toLowerCase().includes("neuron")) return json({ error: "günlük ücretsiz kota doldu; yarın tekrar dene" }, 429);
+        return json({ error: "yapay zekâ şu an yanıt vermiyor", detail: why.replace(/AIza[\w-]+/g, "***") }, 502);
+      }
+    }
     const d = await r.json();
     return json({ content: d.choices?.[0]?.message?.content ?? "" });
   },
