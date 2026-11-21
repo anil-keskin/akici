@@ -142,7 +142,11 @@ export default function Chat({ params }: { params: URLSearchParams }) {
       {ready === false && (
         <div className="card small" style={{ background: "var(--amber-soft)" }}>
           {s.aiProvider === "local"
-            ? <>Yerel yapay zekâ kapalı. Bilgisayarda <b>baslat.bat</b> ile Akıcı sunucusunu ve Ollama'yı aç. Ya da Ayarlar → Yapay zekâ'dan kendi API anahtarını gir.</>
+            ? (location.protocol === "https:" || !/^(127\.|localhost|192\.168\.|10\.|172\.)/.test(location.hostname))
+              ? <>Bu sürüm (internet sitesi / telefon uygulaması) bilgisayarındaki yapay zekâya ulaşamaz. İki yol var:<br />
+                  <b>1) Evde ücretsiz:</b> bilgisayarda <b>baslat-lan.bat</b> çalıştır. Telefonda Chrome'a siyah pencerede yazan <b>http://192.168…:8790</b> adresini yaz, Ayarlar → Yerel sunucu'ya pencerede yazan erişim kodunu gir.<br />
+                  <b>2) Her yerde:</b> Ayarlar → Yapay zekâ'dan kendi API anahtarını gir (sadece bu cihazda saklanır).</>
+              : <>Yerel yapay zekâ kapalı ya da erişim kodu eksik. Bilgisayarda <b>baslat-lan.bat</b> penceresi açık mı? Açıksa Ayarlar → Yerel sunucu'ya penceredeki erişim kodunu gir. Ya da Ayarlar → Yapay zekâ'dan kendi API anahtarını gir.</>
             : <>API anahtarı girilmemiş. Ayarlar → Yapay zekâ.</>}
         </div>
       )}
