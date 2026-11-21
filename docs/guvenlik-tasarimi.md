@@ -1,0 +1,46 @@
+# Akıcı — Güvenlik ve Gizlilik Tasarımı
+
+## 1. Varlıklar
+- Kullanıcının öğrenme verisi: kart geçmişi, puanlar, notlar.
+- Ses kayıtları: telaffuz ve shadowing için.
+- AI sohbet metinleri.
+- AI sağlayıcı anahtarı (kullanıcı kendi anahtarını girerse).
+
+## 2. Mimari (güven sınırları)
+```
+[Tarayıcı / Android WebView]  ──(sadece 127.0.0.1 veya kullanıcının seçtiği adres)──▶  [Akıcı yerel sunucu (Python)]
+   │  IndexedDB (cihazda)                                                                   ├─ /api/score  → Whisper (GPU, bu PC)
+   │  Web Speech / Android TTS-STT                                                         └─ /api/chat   → Ollama (bu PC)
+   └─(isteğe bağlı, kullanıcı anahtarıyla)──▶ [OpenAI uyumlu / Anthropic API]
+```
+- **Hesap yok, bulut veritabanı yok.** Tüm öğrenme verisi cihazda (IndexedDB) durur. Sızacak merkezi bir veri yok.
+- Uygulama sunucusuz da tam çalışır. AI sohbet ve Whisper puanlama, yerel sunucu açıksa devreye girer.
+
+## 3. Tehditler (STRIDE) ve önlemler
+| Tehdit | Önlem |
+|---|---|
+| Aynı ağdaki biri yerel sunucuyu kullanır ya da ses gönderir | Sunucu varsayılan olarak **sadece 127.0.0.1**'i dinler. Android'den bağlanmak için LAN modu bilerek açılır, rastgele bir **erişim kodu** ister. |
+| Başka bir site tarayıcı üzerinden yerel sunucuya istek atar (CSRF / DNS rebinding) | Origin ve Host başlığı beyaz listede olmalı. JSON dışı içerik reddedilir. |
+| Büyük dosya ya da çok istekle sunucuyu çökertme | Ses en fazla 3 MB / 30 sn. Sohbet mesajı en fazla 4000 karakter. İstemci başına hız sınırı. |
+| AI'ya prompt injection | Modelin aracı yok, sadece metin üretir. Sistem istemi sabittir. Model çıktısı HTML olarak değil düz metin olarak basılır (XSS yok). |
+| XSS | React metni otomatik escape eder. `dangerouslySetInnerHTML` kullanılmaz. Sıkı bir CSP vardır. |
+| Anahtar sızıntısı | Kendi anahtarını giren kullanıcı için anahtar sadece cihazda (IndexedDB) durur, koda ve git'e girmez. Ekranda uyarı gösterilir. Varsayılan seçenek anahtarsız yerel Ollama'dır. |
+| Bağımlılık saldırısı | Lock dosyası tutulur. `npm audit` ve `pip-audit` çalıştırılır. Sadece bilinen paketler kullanılır (aşağıda). |
+| Veri kaybı | "Yedeği dışa aktar / içe aktar" (JSON) vardır. Tarayıcı verisi temizlenirse yedekten dönülür. |
+
+## 4. KVKK
+- **Veri sorumlusu:** Uygulamayı kendi bilgisayarında çalıştıran kişi. Kişisel kullanım için KVKK yükümlülüğü yoktur. Uygulama başkalarına dağıtılırsa aşağıdakiler hazır:
+- **Aydınlatma metni:** Uygulama içinde (Ayarlar → Gizlilik). Hangi verinin nerede tutulduğunu ve nereye gittiğini açıkça söyler.
+- **Mikrofon:** İlk kullanımdan önce açıklama gösterilir ve onay alınır. Whisper modunda ses bu bilgisayardan çıkmaz ve diske kalıcı yazılmaz. Tarayıcının konuşma tanıması kullanılırsa ses Google'a (Chrome) ya da Microsoft'a (Edge) gider. Bu ayrıca belirtilir ve kullanıcı seçer.
+- **AI sohbet:** Yerel Ollama'da metin bilgisayardan çıkmaz. Bulut sağlayıcı seçilirse bu **yurtdışına aktarımdır (md. 9)**. Seçim ekranında uyarı vardır, varsayılan seçenek yereldir.
+- **Silme hakkı:** Ayarlar → "Tüm verilerimi sil" her şeyi siler.
+- **Çerez ve analitik:** Yok. Fontlar uygulamanın içinde gelir; Google Fonts'a istek gitmez.
+
+## 5. Mağaza (Android, ileride Play'e konursa)
+- **Data Safety:** "Veri toplanmaz" denebilir, çünkü her şey cihazda kalır. Bulut AI seçilirse "kullanıcının seçtiği 3. tarafa gönderilir" diye beyan edilir.
+- **İzinler:** Sadece RECORD_AUDIO (konuşma alıştırması) ve INTERNET (yerel sunucu ya da AI için).
+- **Gizlilik politikası URL'si:** Yayın öncesi gerekir (`docs/gizlilik.md` taslağı hazırlanacak).
+
+## 6. Kabul edilen riskler
+- Tarayıcı konuşma tanımasında ses üreticinin sunucusuna gider. Bu yüzden Whisper (yerel) varsayılan seçenektir; tarayıcı tanıması sadece yedek olarak kullanılır.
+- Kullanıcının girdiği bulut AI anahtarı cihazda şifrelenmeden durur. Kişisel cihaz için kabul edildi ve ekranda uyarı gösteriliyor.

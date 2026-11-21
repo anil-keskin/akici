@@ -1,0 +1,16 @@
+# Bağımlılıklar ve derleme çıktısı
+node_modules/
+app/dist/
+app/android/app/build/
+# Büyük ham veri ve ara dosyalar (yeniden üretilebilir)
+data/raw/
+data/work/
+research/
+__pycache__/
+*.log
+# Gizli bilgiler
+.env
+.env.*
+!.env.example
+*.keystore
+*.jks

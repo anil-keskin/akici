@@ -1,0 +1,242 @@
+# ŞARKILAR: "== id | başlık | seviye | kaynak" sonra "en = tr" satırları. Hepsi telifsiz: Akıcı için yazıldı ya da halk şarkısı (kamu malı).
+== s-morning | Good Morning, Sun | A1 | Akıcı (özgün)
+Good morning, sun, you're shining bright = Günaydın güneş, parlak parlıyorsun
+I open my eyes to the morning light = Gözlerimi sabah ışığına açıyorum
+I wash my face, I brush my hair = Yüzümü yıkıyorum, saçımı tarıyorum
+I put my shoes on, I'm ready to go out there = Ayakkabılarımı giyiyorum, dışarı çıkmaya hazırım
+Hello, hello, a brand new day = Merhaba, merhaba, yepyeni bir gün
+Hello, hello, I'm on my way = Merhaba, merhaba, yola çıktım
+== s-coffee | Coffee in the Rain | A2 | Akıcı (özgün)
+I was waiting at the corner when the rain began to fall = Yağmur yağmaya başladığında köşede bekliyordum
+You were running with a paper and you didn't see me at all = Elinde bir gazeteyle koşuyordun ve beni hiç görmedin
+We both stopped at the same café, we both ordered the same = İkimiz de aynı kafede durduk, aynı şeyi sipariş ettik
+And the waiter smiled and asked us, "Is it under the same name?" = Garson gülümsedi ve sordu: "Aynı isme mi yazayım?"
+Coffee in the rain, two strangers at a table = Yağmurda kahve, bir masada iki yabancı
+Coffee in the rain, I'd stay here if I'm able = Yağmurda kahve, elimden gelse burada kalırdım
+== s-city | City Lights | B1 | Akıcı (özgün)
+I've been living in this city for a year or two = Bu şehirde bir iki yıldır yaşıyorum
+Every street looks different when I'm walking without you = Sensiz yürürken her sokak farklı görünüyor
+The buses keep on running and the shops are open late = Otobüsler çalışmaya devam ediyor, dükkânlar geç kapanıyor
+But nobody is waiting when I'm coming through the gate = Ama kapıdan girerken kimse beni beklemiyor
+City lights, they never go to sleep = Şehir ışıkları, hiç uyumazlar
+City lights, the promises they keep = Şehir ışıkları, tuttukları sözler
+If I had known how quiet nights could be = Gecelerin ne kadar sessiz olabileceğini bilseydim
+I would have asked you to stay here with me = Seni benimle kalmaya davet ederdim
+== s-weekend | Weekend Song | A1 | Akıcı (özgün)
+On Monday I work and on Tuesday I work = Pazartesi çalışırım, salı çalışırım
+On Wednesday and Thursday I sit at my desk = Çarşamba ve perşembe masamda otururum
+On Friday I smile, I'm almost free = Cuma gülümserim, neredeyse özgürüm
+Saturday and Sunday are only for me = Cumartesi ve pazar sadece benim için
+== s-letter | A Letter Home | B1 | Akıcı (özgün)
+Dear Mom, I'm writing from a place you've never seen = Sevgili annem, senin hiç görmediğin bir yerden yazıyorum
+The mountains here are taller than they've ever been = Buradaki dağlar hiç olmadığı kadar yüksek
+I've found a little job, I'm learning every day = Küçük bir iş buldum, her gün öğreniyorum
+And slowly I am finding words for what I want to say = Ve yavaş yavaş söylemek istediklerim için kelimeler buluyorum
+Don't worry if I don't call you every night = Seni her gece aramazsam merak etme
+I'm doing fine, I'm trying hard, I'm going to be alright = İyiyim, çok çabalıyorum, her şey yoluna girecek
+== s-maybe | Maybe Tomorrow | B2 | Akıcı (özgün)
+I should have told you everything the night before you left = Gitmeden önceki gece sana her şeyi söylemeliydim
+Instead I talked about the weather, the traffic and the rest = Onun yerine havadan, trafikten falan bahsettim
+If only I could turn around the clock to yesterday = Keşke saati düne geri çevirebilsem
+I'd find a braver version of the things I didn't say = Söylemediklerimin daha cesur bir halini bulurdum
+Maybe tomorrow, maybe I'll be strong = Belki yarın, belki güçlü olurum
+Maybe tomorrow, I'll admit that I was wrong = Belki yarın, haksız olduğumu kabul ederim
+== s-colors | The Colour Song | A1 | Akıcı (özgün)
+Red is an apple, yellow is the sun = Kırmızı bir elma, sarı güneş
+Green is the grass where the children run = Yeşil, çocukların koştuğu çimen
+Blue is the sea and white is the snow = Mavi deniz, beyaz kar
+Colours, colours, everywhere I go = Renkler, renkler, gittiğim her yerde
+== s-road | Long Road | A2 | Akıcı (özgün)
+I packed a bag, I closed the door = Bir çanta topladım, kapıyı kapattım
+I didn't want to wait anymore = Artık beklemek istemedim
+The road is long, the night is cold = Yol uzun, gece soğuk
+But I've got stories that I haven't told = Ama henüz anlatmadığım hikâyelerim var
+Keep on driving, keep on moving on = Sürmeye devam et, ilerlemeye devam et
+I'll be somewhere new before the dawn = Şafaktan önce yeni bir yerde olacağım
+== s-twinkle | Twinkle, Twinkle, Little Star | A1 | Jane Taylor, 1806 (kamu malı)
+Twinkle, twinkle, little star = Parla, parla küçük yıldız
+How I wonder what you are = Ne olduğunu çok merak ediyorum
+Up above the world so high = Dünyanın çok yukarısında
+Like a diamond in the sky = Gökyüzündeki bir elmas gibi
+== s-row | Row, Row, Row Your Boat | A1 | Geleneksel (kamu malı)
+Row, row, row your boat = Kürek çek, kürek çek, sandalını
+Gently down the stream = Derenin aşağısına yavaşça
+Merrily, merrily, merrily, merrily = Neşeyle, neşeyle, neşeyle, neşeyle
+Life is but a dream = Hayat bir rüyadan ibaret
+== s-mac | Old MacDonald Had a Farm | A1 | Geleneksel (kamu malı)
+Old MacDonald had a farm, E-I-E-I-O = Yaşlı MacDonald'ın bir çiftliği vardı, E-I-E-I-O
+And on his farm he had a cow, E-I-E-I-O = Ve çiftliğinde bir ineği vardı, E-I-E-I-O
+With a moo moo here and a moo moo there = Burada bir mö mö, orada bir mö mö
+Here a moo, there a moo, everywhere a moo moo = Burada mö, orada mö, her yerde mö mö
+== s-clementine | Oh My Darling, Clementine | A2 | Geleneksel, 1884 (kamu malı)
+In a cavern, in a canyon, excavating for a mine = Bir mağarada, bir kanyonda, maden kazarken
+Dwelt a miner, forty-niner, and his daughter Clementine = Bir madenci ve kızı Clementine yaşardı
+Oh my darling, oh my darling, oh my darling Clementine = Ah sevgilim, ah sevgilim, ah sevgilim Clementine
+You are lost and gone forever, dreadful sorry, Clementine = Kayboldun ve sonsuza dek gittin, çok üzgünüm Clementine
+== s-range | Home on the Range | A2 | Brewster Higley, 1872 (kamu malı)
+Oh, give me a home where the buffalo roam = Ah, bana bizonların dolaştığı bir yuva ver
+Where the deer and the antelope play = Geyiklerin ve antiloplerin oynadığı
+Where seldom is heard a discouraging word = Nadiren cesaret kırıcı bir sözün duyulduğu
+And the skies are not cloudy all day = Ve göklerin bütün gün bulutlu olmadığı
+== s-auld | Auld Lang Syne | B1 | Robert Burns, 1788 (kamu malı)
+Should old acquaintance be forgot = Eski dostlar unutulmalı mı
+And never brought to mind? = Ve hiç akla getirilmemeli mi?
+Should old acquaintance be forgot = Eski dostlar unutulmalı mı
+And days of auld lang syne? = Ve eski güzel günler?
+For auld lang syne, my dear = Eski güzel günlerin hatırına, canım
+For auld lang syne = Eski güzel günlerin hatırına
+We'll take a cup of kindness yet = Yine de bir dostluk kadehi kaldıracağız
+For auld lang syne = Eski güzel günlerin hatırına
+== s-susanna | Oh! Susanna | A2 | Stephen Foster, 1848 (kamu malı)
+I came from Alabama with a banjo on my knee = Alabama'dan geldim, dizimde bir banjo ile
+I'm going to Louisiana, my true love for to see = Louisiana'ya gidiyorum, gerçek aşkımı görmeye
+Oh! Susanna, oh don't you cry for me = Ah Susanna, benim için ağlama
+For I come from Alabama with a banjo on my knee = Çünkü Alabama'dan geliyorum, dizimde bir banjo ile
+== s-mountain | She'll Be Coming Round the Mountain | A1 | Geleneksel (kamu malı)
+She'll be coming round the mountain when she comes = Geldiğinde dağın etrafından dolaşarak gelecek
+She'll be driving six white horses when she comes = Geldiğinde altı beyaz at sürüyor olacak
+Oh, we'll all go out to meet her when she comes = Ah, geldiğinde hepimiz onu karşılamaya çıkacağız
+# KALIPLAR: "## kategori" sonra "en | tr | not" (dizi ve filmlerde sık geçen günlük konuşma)
+## Tepki
+No way! | Yok artık! / Olamaz! | şaşkınlık
+You've got to be kidding me. | Dalga geçiyorsun herhalde. | inanmama
+Tell me about it. | Hiç sorma. / Aynen öyle. | katılma (iğneleme değil)
+I'm all ears. | Dinliyorum, anlat. | merak
+That's the spirit! | İşte bu! / Bu kafayla devam! | cesaretlendirme
+Fair enough. | Mantıklı. / Haklısın. | kabul
+Good for you! | Aferin sana! / Ne güzel! | tebrik
+Big deal. | Ne olmuş yani. | küçümseme
+Whatever. | Neyse. / Her neyse. | ilgisizlik (kaba olabilir)
+Same here. | Bende de öyle. | katılma
+You bet! | Kesinlikle! / Ne demezsin! | onay
+I knew it! | Biliyordum! | tahmin doğru çıktı
+Oh my God. | Aman Tanrım. | şaşkınlık
+That's insane. | Bu çılgınca. | aşırı şaşkınlık
+Seriously? | Cidden mi? | inanmama
+Gross! | İğrenç! | tiksinme
+Awesome! | Harika! | sevinç
+Bummer. | Hay aksi. / Ne kötü. | hayal kırıklığı
+Get out of here! | Hadi canım! (inanmama) | şaşkınlık, kovma değil
+## Sohbet
+What's up? | Naber? | selam
+How's it going? | Nasıl gidiyor? | selam
+Long time no see. | Görüşmeyeli uzun zaman oldu. | selam
+What have you been up to? | Neler yapıyorsun bu aralar? | sohbet açma
+Speaking of which... | Laf açılmışken... | konu bağlama
+By the way... | Bu arada... | konu açma
+Anyway... | Neyse... | konuya dönme
+Long story short... | Uzun lafın kısası... | özetleme
+To be honest... | Açıkçası... | dürüstlük
+You know what? | Biliyor musun? | dikkat çekme
+Guess what! | Bil bakalım ne oldu! | haber verme
+I mean... | Yani... | açıklama
+Let me put it this way. | Şöyle söyleyeyim. | açıklama
+Where was I? | Nerede kalmıştım? | konuya dönme
+It slipped my mind. | Aklımdan çıkmış. | unutma
+It rings a bell. | Tanıdık geliyor. | hatırlama
+I'll keep you posted. | Seni haberdar ederim. | bilgi verme
+Catch you later. | Sonra görüşürüz. | vedalaşma
+Take care. | Kendine iyi bak. | vedalaşma
+I've got to go. | Gitmem lazım. | vedalaşma
+## Duygu
+I'm fed up with this. | Bundan bıktım. | bıkkınlık
+I'm freaking out. | Kafayı yemek üzereyim. / Panik oldum. | panik
+I can't stand it. | Buna dayanamıyorum. | tahammülsüzlük
+It's killing me. | Beni mahvediyor. / Merakımdan çatlıyorum. | yoğun duygu
+I'm over the moon. | Havalara uçuyorum. | büyük mutluluk
+I'm so done. | Artık yeter, bitti. | bıkkınlık
+It breaks my heart. | Kalbimi kırıyor. | üzüntü
+I'm on edge. | Gerginim. | gerginlik
+It's not a big deal. | Önemli bir şey değil. | rahatlatma
+Calm down. | Sakin ol. | sakinleştirme
+Chill out. | Sakin ol. / Rahatla. | gündelik
+Cheer up! | Neşelen! / Üzme kendini! | teselli
+Hang in there. | Dayan. / Pes etme. | destek
+I've got your back. | Arkandayım. | destek
+I owe you one. | Sana bir borcum var. | teşekkür
+## Karar ve plan
+Let's call it a day. | Bugünlük bu kadar. | bitirme
+Let's get this over with. | Şu işi bitirelim artık. | isteksizlik
+I'm in. | Ben varım. | katılma
+Count me out. | Beni saymayın. / Ben yokum. | katılmama
+It's up to you. | Sana kalmış. | karar
+Let's play it by ear. | Duruma göre takılırız. | esneklik
+I'll sleep on it. | Bir düşüneyim. / Yarına kadar düşüneyim. | erteleme
+Let's grab a bite. | Bir şeyler atıştıralım. | yemek
+Rain check? | Başka zamana mı ertelesek? | erteleme
+Hold on a second. | Bir saniye bekle. | bekletme
+Hurry up! | Acele et! | acele
+We're running out of time. | Vaktimiz azalıyor. | acele
+Let's get going. | Hadi gidelim. | başlama
+Here we go. | İşte başlıyoruz. / Al işte. | başlama
+Game over. | Oyun bitti. / Her şey bitti. | son
+## Tartışma
+That's not the point. | Mesele o değil. | itiraz
+You're missing the point. | Asıl noktayı kaçırıyorsun. | itiraz
+Give me a break. | Yapma ya. / Bırak Allah aşkına. | bıkkınlık
+Mind your own business. | Sen kendi işine bak. | kaba
+Back off! | Geri çekil! / Bulaşma! | kaba
+Watch your mouth. | Ağzını topla. | uyarı
+How dare you? | Ne cüretle? | öfke
+Don't get me wrong. | Yanlış anlama. | yumuşatma
+I didn't mean it. | Öyle demek istemedim. | özür
+My bad. | Benim hatam. | özür (gündelik)
+Let it go. | Boş ver. / Takılma. | sakinleştirme
+Get over it. | Artık aş bunu. | sertçe
+It's not my fault. | Benim suçum değil. | savunma
+Says who? | Kim demiş? | itiraz
+You asked for it. | Sen istedin. / Hak ettin. | suçlama
+Point taken. | Anladım, haklısın. | kabul
+Agree to disagree. | Anlaşamadığımızda anlaşalım. | uzlaşma
+## İş ve okul
+I'm swamped. | İşten başımı kaşıyacak vaktim yok. | yoğunluk
+Let's touch base. | Bir haberleşelim. / Kısa bir görüşelim. | iş dili
+I'm on it. | Hallediyorum. / İlgileniyorum. | sorumluluk
+Got it. | Anladım. / Tamamdır. | onay
+Bear with me. | Biraz sabret. | bekletme
+It's a piece of cake. | Çocuk oyuncağı. | kolay
+I'm running late. | Geç kalıyorum. | gecikme
+Let me get back to you. | Sana dönüş yapayım. | iş dili
+Keep up the good work. | Böyle devam. | övgü
+You nailed it! | Tam on ikiden vurdun! / Harika yaptın! | övgü
+It's a long shot. | Pek olası değil ama deneriz. | düşük ihtimal
+Back to square one. | Başa döndük. | başarısızlık
+We're on the same page. | Aynı fikirdeyiz. | uyum
+Think outside the box. | Kalıpların dışında düşün. | yaratıcılık
+## Dizi klasikleri
+We need to talk. | Konuşmamız lazım. | ciddi konu
+It's not what it looks like! | Göründüğü gibi değil! | yakalanma
+Trust me. | Bana güven. | ikna
+I've got a bad feeling about this. | Bu işten hiç hoşlanmadım. / İçim rahat değil. | sezgi
+Leave me alone. | Beni yalnız bırak. | uzaklaşma
+I can explain. | Açıklayabilirim. | savunma
+What are you doing here? | Ne işin var burada? | şaşkınlık
+You're not gonna believe this. | Buna inanmayacaksın. | haber
+It's now or never. | Ya şimdi ya hiç. | karar
+Whatever it takes. | Ne gerekiyorsa. | kararlılık
+I'm not going anywhere. | Hiçbir yere gitmiyorum. | bağlılık
+Don't do anything stupid. | Aptalca bir şey yapma. | uyarı
+Stay with me! | Benimle kal! / Dayan! | acil durum
+Get in the car. | Arabaya bin. | acele
+We've got company. | Misafirimiz var. (tehlike geliyor) | tehlike
+It's complicated. | Karışık. / Durum karmaşık. | ilişki
+I'm sorry for your loss. | Başınız sağ olsun. | taziye
+Are you out of your mind? | Aklını mı kaçırdın? | şaşkınlık
+Over my dead body. | Ölümü çiğnemeden geçemezsin. / Asla. | ret
+Not on my watch. | Ben buradayken olmaz. | koruma
+## Argo (gündelik)
+I'm broke. | Meteliksizim. | para
+That's sick! | Bu müthiş! | argo övgü
+No big deal. | Sorun değil. | rahatlatma
+I'm beat. | Çok yorgunum. / Bittim. | yorgunluk
+Hit the road. | Yola çık. / Git artık. | ayrılma
+Spill the tea. | Anlat bakalım dedikoduyu. | dedikodu
+It's lit! | Ortam çok iyi! | eğlence
+Low-key... | Açıkçası biraz... / Sessiz sedasız... | yumuşatma
+I'm down. | Varım. | katılma
+That's a bummer. | Bu çok kötü. | hayal kırıklığı
+Hang out | Takılmak | arkadaşlık
+Cut it out! | Kes şunu! | durdurma
+Busted! | Yakalandın! | yakalanma
+Nailed it. | Başardım. / Tam oldu. | başarı
+Big time. | Fena halde. / Çok. | vurgu
