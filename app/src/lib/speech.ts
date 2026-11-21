@@ -139,7 +139,12 @@ export class Listener {
     if (this.engine === "native") {
       this.srText = ""; this.t0 = Date.now();
       if (native.listenStart) {
-        await native.listenStart(s.accent, (t) => { this.srText = t; this.onPartial?.(t); }, () => onAutoStop?.());
+        let quiet: number | undefined;
+        await native.listenStart(s.accent, (t) => {
+          this.srText = t; this.onPartial?.(t);
+          // 1,8 sn yeni kelime gelmezse konuşma bitti say ve gönder
+          clearTimeout(quiet); quiet = window.setTimeout(() => onAutoStop?.(), 1800);
+        }, () => { clearTimeout(quiet); onAutoStop?.(); });
         this.timer = window.setTimeout(() => onAutoStop?.(), maxSec * 1000);
       }
       return;

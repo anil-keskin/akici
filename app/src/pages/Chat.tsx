@@ -110,10 +110,12 @@ export default function Chat({ params }: { params: URLSearchParams }) {
     try { await l.start(40, () => stopListening()); setRec(true); } catch (e) { setErr((e as Error).message); callRef.current = false; setCall(false); }
   }
   async function stopListening() {
-    if (!lis.current) return;
+    const cur = lis.current;
+    if (!cur) return;
+    lis.current = null; // ikinci kez durdurulmasın (sessizlik + düğme aynı anda)
     setRec(false);
-    const h = await lis.current.stop().catch((e) => { setErr((e as Error).message); return null; });
-    lis.current = null; setHeard("");
+    const h = await cur.stop().catch((e) => { setErr((e as Error).message); return null; });
+    setHeard("");
     if (h?.text) send(h.text);
     else if (callRef.current) setErr("Seni duyamadım. Mikrofona tekrar bas.");
   }
@@ -142,6 +144,7 @@ export default function Chat({ params }: { params: URLSearchParams }) {
           <div className="h3">{persona.name} <span className="muted small">· {sc ? sc.ai : persona.role}</span></div>
           <div className="muted small">{rec ? "Dinliyorum… bitince ■ düğmesine bas." : talking ? "Konuşuyor… (susturmak için Sustur ya da mikrofona bas)" : busy ? "Düşünüyor…" : call ? "Sesli sohbet açık" : "Yaz ya da sesli sohbeti başlat."}</div>
           {rec && heard && <div className="small" style={{ marginTop: 4, fontStyle: "italic" }}>“{heard}”</div>}
+          {err && <div className="small" style={{ marginTop: 4, color: "var(--coral)", fontWeight: 600 }}>⚠️ {err}</div>}
           {talking && <button className="btn sm coral" style={{ marginTop: 8 }} onClick={shush}><VolumeX size={15} /> Sustur</button>}
         </div>
         {MODES[mode].json && (

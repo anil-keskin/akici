@@ -32,10 +32,13 @@ export async function loadSettings() {
   const s = await kvGet<Partial<Settings>>("settings", {});
   current = { ...DEFAULTS, ...s };
   // İlk açılış: bilgisayardaki yerel sunucuda değilsek hazır Loki AI'yı kullan
-  if (!s.aiProvider) {
-    const { AKICI_AI } = await import("./ai");
-    const onPc = /^(127\.|localhost|192\.168\.|10\.|172\.)/.test(location.hostname) && location.protocol === "http:";
-    if (AKICI_AI && !onPc) current = { ...current, aiProvider: "akici", aiModel: "akici" };
+  // Telefonda/sitede yerel yapay zekâya ulaşılamaz; anahtarsız bulut seçimi de çalışmaz → hazır Loki AI'ya geç
+  const { AKICI_AI } = await import("./ai");
+  const onPc = /^(127\.|localhost|192\.168\.|10\.|172\.)/.test(location.hostname) && location.protocol === "http:";
+  const broken = !s.aiProvider || (s.aiProvider === "local" && !onPc) || ((s.aiProvider === "openai" || s.aiProvider === "anthropic") && !s.aiKey);
+  if (AKICI_AI && broken && !(onPc && s.aiProvider === "local")) {
+    current = { ...current, aiProvider: "akici", aiModel: "akici" };
+    if (s.aiProvider) await kvSet("settings", current);
   }
   applyTheme();
   return current;
