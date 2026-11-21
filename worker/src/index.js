@@ -88,10 +88,23 @@ export default {
       why = (await r.text().catch(() => "")).slice(0, 200);
       if (![400, 402, 403, 404].includes(r.status)) break; // kota/sunucu hatası: başka model deneme
     }
+    // B planı: Groq (ücretsiz kota, anahtar GROQ_KEY) — Gemini olmazsa
+    if ((!r || !r.ok) && env.GROQ_KEY) {
+      for (const model of ["llama-3.3-70b-versatile", "openai/gpt-oss-120b", "openai/gpt-oss-20b"]) {
+        const g = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+          method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${env.GROQ_KEY}` },
+          body: JSON.stringify({ model, messages: clean, max_tokens: maxTokens, ...(body.json ? { response_format: { type: "json_object" } } : {}) }),
+        });
+        if (g.ok) { const gd = await g.json(); return json({ content: gd.choices?.[0]?.message?.content ?? "", via: "groq" }); }
+        if (![400, 404].includes(g.status)) break; // kota doldu vb.: sonraki plana geç
+      }
+    }
     if (!r || !r.ok) {
-      // Gemini kullanılamıyorsa (kota/kredi/anahtar): Cloudflare Workers AI yedeği
+      // C planı: Cloudflare Workers AI (hesapta günlük ücretsiz kota)
       try {
-        const out = await env.AI.run(CF_MODEL, { messages: clean, max_tokens: maxTokens });
+        let out;
+        try { out = await env.AI.run(CF_MODEL, { messages: clean, max_tokens: maxTokens }); }
+        catch { out = await env.AI.run("@cf/meta/llama-3.1-8b-instruct-fast", { messages: clean, max_tokens: maxTokens }); } // daha hafif model
         const text = typeof out?.response === "string" ? out.response : JSON.stringify(out?.response ?? "");
         return json({ content: text, via: "cf" });
       } catch (e) {
