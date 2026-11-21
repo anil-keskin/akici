@@ -25,6 +25,8 @@ export interface NativeBridge {
   /** Ekrana pencere açmadan dinlemeye başlar; ara sonuçlar onPartial ile gelir, susunca onEnd çağrılır */
   listenStart?(lang: string, onPartial: (t: string) => void, onEnd: () => void): Promise<void>;
   listenStop?(): Promise<void>;
+  /** Android mikrofon iznini sistemden iste (WebView kaydı için gerekli) */
+  ensureMic?(): Promise<boolean>;
 }
 export const native: NativeBridge = {};
 
@@ -146,6 +148,9 @@ export class Listener {
       const { AKICI_AI } = await import("./ai");
       if (AKICI_AI && typeof navigator.mediaDevices?.getUserMedia === "function") this.engine = "cloud";
     }
+    if (this.engine === "cloud" && native.ensureMic && !(await native.ensureMic())) {
+      throw new Error("Mikrofon izni yok. Telefonda Ayarlar → Uygulamalar → Lokilingo → İzinler → Mikrofon → İzin ver.");
+    }
     if (this.engine === "native") {
       this.srText = ""; this.t0 = Date.now();
       if (native.listenStart) {
@@ -159,7 +164,14 @@ export class Listener {
       }
       return;
     }
-    this.stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true } });
+    try {
+      this.stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true } });
+    } catch (e) {
+      const n = (e as Error).name;
+      if (n === "NotAllowedError" || n === "SecurityError") throw new Error("Mikrofon izni verilmedi. Telefonda Ayarlar → Uygulamalar → Lokilingo → İzinler → Mikrofon → İzin ver, sonra tekrar dene.");
+      if (n === "NotFoundError") throw new Error("Mikrofon bulunamadı.");
+      throw e;
+    }
     this.chunks = [];
     this.rec = new MediaRecorder(this.stream);
     this.rec.ondataavailable = (e) => e.data.size && this.chunks.push(e.data);

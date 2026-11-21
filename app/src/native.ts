@@ -42,6 +42,14 @@ export async function setupNative() {
       await SpeechRecognition.addListener("listeningState", (d: { status?: string }) => { if (d?.status === "stopped") onEnd(); });
       await SpeechRecognition.start({ language: lang, maxResults: 3, partialResults: true, popup: false });
     };
+    native.ensureMic = async () => {
+      try {
+        const cur = await SpeechRecognition.checkPermissions();
+        if (cur.speechRecognition === "granted") return true;
+        const r = await SpeechRecognition.requestPermissions();
+        return r.speechRecognition === "granted";
+      } catch { return true; } // eklenti izin bilgisi veremezse WebView kendisi sorsun
+    };
     native.listenStop = async () => { try { await SpeechRecognition.stop(); } catch { /* zaten durdu */ } };
   } catch { /* eklenti yok */ }
 }
