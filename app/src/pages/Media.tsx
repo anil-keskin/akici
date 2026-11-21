@@ -128,7 +128,7 @@ function YTWatch({ id, title }: { id: string; title: string }) {
         <div className="row wrap" style={{ gap: 8 }}>
           <label className="btn sm primary"><Upload size={15} /> Altyazı dosyası seç<input type="file" accept=".srt,.vtt,.txt" hidden onChange={async (e) => { const f = e.target.files?.[0]; if (f) attach(await f.text()); }} /></label>
         </div>
-        <textarea className="input" rows={3} placeholder="…ya da altyazı metnini buraya yapıştır" value={text} onChange={(e) => setText(e.target.value.slice(0, 2_000_000))} />
+        <textarea className="input" rows={3} placeholder="…ya da YouTube transkriptini (Transkripti göster) buraya yapıştır" value={text} onChange={(e) => setText(e.target.value.slice(0, 2_000_000))} />
         {text.trim() && <button className="btn sm" onClick={() => attach(text)}>Yapıştırdığım altyazıyla aç</button>}
       </div>
     </div>
@@ -549,6 +549,27 @@ export function parseSubs(raw: string): Line[] {
       if (en && /[a-z]/i.test(en)) out.push({ en, t });
     }
     return out;
+  }
+  // YouTube "Transkripti göster" panelinden kopyalanan metin: "0:05" satırı + metin satırı (ya da "0:05 metin")
+  const TS = /^\s*(?:(\d+):)?(\d{1,2}):(\d{2})\s*(.*)$/;
+  const rows = txt.split("\n").map((x) => x.trim()).filter(Boolean);
+  if (rows.filter((r) => TS.test(r)).length >= Math.max(2, rows.length * 0.3)) {
+    let t: number | undefined;
+    for (const r of rows) {
+      const m = r.match(TS);
+      if (m) {
+        t = Number(m[1] || 0) * 3600 + Number(m[2]) * 60 + Number(m[3]);
+        const rest = clean(m[4] || "");
+        if (rest && /[a-z]/i.test(rest)) { out.push({ en: rest, t }); t = undefined; }
+        continue;
+      }
+      const en = clean(r);
+      if (!en || !/[a-z]/i.test(en) || /^\d+ (seconds?|minutes?|saniye|dakika)/i.test(en)) continue;
+      if (t !== undefined) { out.push({ en, t }); t = undefined; }
+      else if (out.length) out[out.length - 1].en += " " + en;
+    }
+    if (out.length >= 2) return out;
+    out.length = 0;
   }
   for (const l of txt.split("\n")) {
     const m = l.match(/^\s*\[(\d+):(\d+(?:\.\d+)?)\](.*)$/); // LRC
