@@ -81,9 +81,13 @@ async function raw(messages: Msg[], maxTokens: number, json: boolean): Promise<s
   const r = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
     headers: { "Content-Type": "application/json", "x-api-key": s.aiKey, "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" },
-    body: JSON.stringify({ model: s.aiModel || "claude-haiku-5-5", max_tokens: maxTokens, system, messages: messages.filter((m) => m.role !== "system") }),
+    body: JSON.stringify({
+      model: s.aiModel || "claude-haiku-5-5", max_tokens: Math.max(maxTokens, 1024), system, messages: messages.filter((m) => m.role !== "system"),
+      // Sohbet hızlı ve ucuz olsun: Haiku 5.5'te düşünme kapalı + düşük efor (diğer modellerde varsayılan kalır)
+      ...(/^claude-haiku-5/.test(s.aiModel || "claude-haiku-5-5") ? { thinking: { type: "disabled" }, output_config: { effort: "low" } } : {}),
+    }),
   });
-  if (!r.ok) throw new Error(`API hatası ${r.status}`);
+  if (!r.ok) throw new Error(r.status === 401 ? "API anahtarı geçersiz (Ayarlar → Yapay zekâ)." : r.status === 429 ? "Çok hızlı istek ya da kredi bitti; biraz sonra dene." : `API hatası ${r.status}`);
   const d = await r.json();
   return (d.content || []).map((b: { type: string; text?: string }) => (b.type === "text" ? b.text : "")).join("");
 }

@@ -32,7 +32,7 @@ export default function Progress() {
   const last30 = days.slice(-30);
   return (
     <div className="stack">
-      <PageHead title="İlerleme" sub="Ölçtüğün şey gelişir." icon={<div className="ico iris"><BarChart3 /></div>} right={<button className="btn ghost" onClick={() => go("/test")}>Seviye testi</button>} />
+      <PageHead title="İlerleme" sub="Ölçtüğün şey gelişir." icon={<div className="ico iris"><BarChart3 /></div>} right={<div className="row" style={{ gap: 6 }}><button className="btn ghost" onClick={() => go("/test")}>Seviye testi</button><button className="btn primary" onClick={() => go("/ayarlar")}>⚙️ Ayarlar</button></div>} />
       <div className="grid g4">
         <Card i={<Flame />} c="coral" v={`${s.streak} gün`} l="Seri" />
         <Card i={<Trophy />} c="amber" v={s.xp.toLocaleString("tr")} l={`Toplam XP · Seviye ${lv.lvl}`} />
