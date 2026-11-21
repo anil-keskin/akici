@@ -288,7 +288,12 @@ def main():
         sys.exit(1)
     LAN = a.lan
     if LAN:
-        TOKEN = secrets.token_urlsafe(9)
+        # Kod bir kez üretilir ve server/erisim-kodu.txt'de saklanır (git'e girmez); telefona bir kez girilir.
+        tf = Path(__file__).resolve().parent / "erisim-kodu.txt"
+        TOKEN = tf.read_text(encoding="utf-8").strip() if tf.exists() else ""
+        if len(TOKEN) < 10:
+            TOKEN = "".join(secrets.choice("ABCDEFGHJKMNPQRSTUVWXYZ23456789") for _ in range(10))
+            tf.write_text(TOKEN, encoding="utf-8")
     host = "0.0.0.0" if LAN else "127.0.0.1"
     if not a.no_whisper:
         threading.Thread(target=load_model, args=(a.device,), daemon=True).start()
@@ -298,7 +303,10 @@ def main():
     srv = ThreadingHTTPServer((host, a.port), Handler)
     print(f"Akıcı çalışıyor: http://127.0.0.1:{a.port}/", flush=True)
     if LAN:
-        print(f"Telefondan: http://{lan_ip()}:{a.port}/   Erişim kodu: {TOKEN}", flush=True)
+        print("=" * 52, flush=True)
+        print(f"  TELEFONDA AC:  http://{lan_ip()}:{a.port}/", flush=True)
+        print(f"  ERISIM KODU:   {TOKEN}", flush=True)
+        print("=" * 52, flush=True)
         print("(Kodu uygulamada Ayarlar → Yerel sunucu'ya gir. Pencereyi kapatınca sunucu durur.)", flush=True)
     try:
         srv.serve_forever()
