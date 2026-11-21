@@ -1,4 +1,4 @@
-# Akıcı — İngilizce öğrenme uygulaması (web + PWA, Android hazırlığı)
+# Lokilingo — Loki ile İngilizce (eski adı: Akıcı)
 
 ## Çalıştırma
 `baslat.bat` → http://127.0.0.1:8790 (Whisper telaffuz puanı + yerel AI sohbet).

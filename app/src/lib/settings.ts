@@ -31,7 +31,7 @@ const subs = new Set<(s: Settings) => void>();
 export async function loadSettings() {
   const s = await kvGet<Partial<Settings>>("settings", {});
   current = { ...DEFAULTS, ...s };
-  // İlk açılış: bilgisayardaki yerel sunucuda değilsek hazır Akıcı AI'yı kullan
+  // İlk açılış: bilgisayardaki yerel sunucuda değilsek hazır Loki AI'yı kullan
   if (!s.aiProvider) {
     const { AKICI_AI } = await import("./ai");
     const onPc = /^(127\.|localhost|192\.168\.|10\.|172\.)/.test(location.hostname) && location.protocol === "http:";

@@ -105,7 +105,7 @@ def main():
     for s in STORIES:
         ch = [{"title": s["title"], "p": [a for a, _ in s["paras"]], "tr": [b for _, b in s["paras"]]}]
         (OUT / f"{s['id']}.json").write_text(json.dumps({"meta": None, "chapters": ch}, ensure_ascii=False), encoding="utf-8")
-        meta = {"id": s["id"], "title": s["title"], "author": "Akıcı", "lv": s["lv"], "kind": "story", "chapters": 1,
+        meta = {"id": s["id"], "title": s["title"], "author": "Lokilingo", "lv": s["lv"], "kind": "story", "chapters": 1,
                 "words": sum(len(a.split()) for a, _ in s["paras"]), "blurb": s["blurb"]}
         index.append(meta)
     for gid, sid, title, author, blurb in BOOKS:

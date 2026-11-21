@@ -61,7 +61,7 @@ export async function exportAll(): Promise<string> {
 
 export async function importAll(json: string) {
   const d = JSON.parse(json);
-  if (d?.app !== "akici") throw new Error("Bu bir Akıcı yedeği değil");
+  if (d?.app !== "akici") throw new Error("Bu bir Lokilingo yedeği değil");
   await db.transaction("rw", [db.cards, db.logs, db.days, db.kv, db.chats, db.progress], async () => {
     const revive = (c: CardRow) => ({ ...c, card: { ...c.card, due: new Date(c.card.due), last_review: c.card.last_review ? new Date(c.card.last_review) : undefined } });
     await db.cards.bulkPut((d.cards || []).map(revive));

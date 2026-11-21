@@ -85,9 +85,9 @@ export default function Settings() {
 
       <Sec t="Gizlilik ve veriler (KVKK)" i={<ShieldCheck />}>
         <div className="small sub" style={{ lineHeight: 1.7 }}>
-          <b>Aydınlatma:</b> Akıcı'nın hesabı, sunucu veritabanı, çerezi ve analitiği yoktur. İlerlemen, kartların ve sohbet geçmişin <b>sadece bu cihazda</b> (tarayıcı veritabanı) tutulur.
+          <b>Aydınlatma:</b> Lokilingo'nun hesabı, sunucu veritabanı, çerezi ve analitiği yoktur. İlerlemen, kartların ve sohbet geçmişin <b>sadece bu cihazda</b> (tarayıcı veritabanı) tutulur.
           Mikrofon sadece konuşma alıştırmasında açılır; yerel sunucu açıksa ses bu bilgisayarda Whisper ile çözülür ve kalıcı kaydedilmez. Sunucu kapalıysa tarayıcının konuşma tanıması kullanılır (Chrome: Google, Edge: Microsoft).
-          AI sohbette yerel model seçiliyse metin bilgisayardan çıkmaz; bulut sağlayıcı seçersen metin o sağlayıcıya gider. <b>Akıcı AI</b> seçiliyse yazdığın metin Akıcı'nın aracı sunucusu (Cloudflare, ABD) üzerinden Google Gemini'ye iletilir; aracı sunucu metni kaydetmez ve loglamaz, sadece kötüye kullanımı önlemek için IP adresine ve rastgele bir cihaz numarasına göre dakikalık sayaç tutar. Bu yurtdışına aktarımdır (KVKK md. 9): sohbete kişisel bilgi yazma. İstediğin an verilerini dışa aktarabilir ya da tamamen silebilirsin (KVKK md. 11).
+          AI sohbette yerel model seçiliyse metin bilgisayardan çıkmaz; bulut sağlayıcı seçersen metin o sağlayıcıya gider. <b>Loki AI</b> seçiliyse yazdığın metin Lokilingo'nun aracı sunucusu (Cloudflare, ABD) üzerinden Cloudflare Workers AI'ya (bazen Google Gemini'ye) iletilir; aracı sunucu metni kaydetmez ve loglamaz, sadece kötüye kullanımı önlemek için IP adresine ve rastgele bir cihaz numarasına göre dakikalık sayaç tutar. Bu yurtdışına aktarımdır (KVKK md. 9): sohbete kişisel bilgi yazma. İstediğin an verilerini dışa aktarabilir ya da tamamen silebilirsin (KVKK md. 11).
         </div>
         <div className="row wrap">
           <button className="btn ghost" onClick={doExport}><Download size={16} /> Yedeği indir</button>
@@ -103,7 +103,7 @@ export default function Settings() {
           Kelime sıklığı: <b>wordfreq</b> (Robyn Speer, veri CC BY-SA 4.0). Sözlük: <b>Vikisözlük / Wiktionary</b> İngilizce ve Türkçe sürümleri, kaikki.org çıkarımı (CC BY-SA 4.0).
           Cümleler: <b>Tatoeba</b> (CC BY 2.0 FR, tatoeba.org katkıcıları). Telaffuz: <b>CMU Pronouncing Dictionary</b> (BSD). Kitaplar: <b>Project Gutenberg</b> (ABD'de telifsiz).
           Aralıklı tekrar: <b>ts-fsrs</b> (MIT). "makine çevirisi" etiketli karşılıklar yerel yapay zekâ ile üretildi, hata içerebilir.
-          Seviyeli hikâyeler, gramer anlatımları ve senaryolar Akıcı için yazıldı.
+          Seviyeli hikâyeler, gramer anlatımları ve senaryolar Lokilingo için yazıldı.
         </div>
       </Sec>
     </div>
@@ -118,8 +118,8 @@ function Row({ l, children }: { l: string; children: React.ReactNode }) {
 
 type Prov = "akici" | "local" | "openai" | "anthropic";
 const PRESETS: { id: string; label: string; p: Prov; model: string; base?: string; hint?: string }[] = [
-  ...(AKICI_AI ? [{ id: "akici", label: "Akıcı AI — hazır, ücretsiz (anahtar gerekmez)", p: "akici" as Prov, model: "akici",
-    hint: "Mesajların Akıcı'nın aracı sunucusu (Cloudflare) üzerinden Google Gemini'ye gider, kaydedilmez. Kişisel bilgi yazma. Kullanım sınırı vardır." }] : []),
+  ...(AKICI_AI ? [{ id: "akici", label: "Loki AI — hazır, ücretsiz (anahtar gerekmez)", p: "akici" as Prov, model: "akici",
+    hint: "Mesajların Lokilingo'nun aracı sunucusu üzerinden Cloudflare'in yapay zekâsına (bazen Google Gemini'ye) gider, kaydedilmez. Kişisel bilgi yazma. Kullanım sınırı vardır." }] : []),
   { id: "local", label: "Yerel (Ollama) — ücretsiz, veri bilgisayardan çıkmaz", p: "local", model: "qwen3:8b" },
   { id: "gemini", label: "Google Gemini — ücretsiz kota", p: "openai", model: "gemini-flash-latest", base: "https://generativelanguage.googleapis.com/v1beta/openai",
     hint: "Anahtar: aistudio.google.com → Get API key (kart gerekmez). Ücretsiz kotada Google yazdıklarını ürün geliştirmek için kullanabilir; kişisel bilgi yazma." },

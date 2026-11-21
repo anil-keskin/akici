@@ -77,7 +77,7 @@ export default function App() {
     <div className={focus ? "" : "shell"}>
       {!focus && (
         <aside className="side">
-          <a className="brand" href="#/"><Mascot size={38} /><b>Akıcı</b></a>
+          <a className="brand" href="#/"><Mascot size={38} /><b>Lokilingo</b></a>
           {NAV.map((n, i) => "sec" in n
             ? <div key={i} className="nav-sec">{n.sec}</div>
             : <a key={n.to} href={`#${n.to}`} className={`nav-item ${base === n.to ? "on" : ""}`}><n.icon size={19} />{n.label}</a>)}

@@ -27,7 +27,7 @@ export default function Onboarding() {
       {step === 0 && (
         <div className="col pop" style={{ gap: 18, alignItems: "center", textAlign: "center" }}>
           <Mascot size={130} />
-          <h1 className="h1">Akıcı'ya hoş geldin!</h1>
+          <h1 className="h1">Lokilingo'ya hoş geldin!</h1>
           <p className="sub" style={{ fontSize: 18 }}>20.000 kelime, gerçek cümleler, gramer, dinleme, telaffuz ve yapay zekâ öğretmen — hepsi tek yerde, reklamsız ve ücretsiz.</p>
           <div className="card small row" style={{ textAlign: "left", alignItems: "flex-start" }}><ShieldCheck color="var(--mint)" style={{ flex: "none" }} />Hesap açmana gerek yok. İlerlemen sadece bu cihazda tutulur; hiçbir yere gönderilmez.</div>
           <input className="input" placeholder="Adın (isteğe bağlı)" value={name} onChange={(e) => setName(e.target.value)} maxLength={40} />

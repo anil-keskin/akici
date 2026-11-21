@@ -1,6 +1,6 @@
 {
   "appId": "app.akici.english",
-  "appName": "Akıcı",
+  "appName": "Lokilingo",
   "webDir": "dist",
   "android": { "allowMixedContent": false },
   "server": { "androidScheme": "https" }

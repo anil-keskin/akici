@@ -130,7 +130,7 @@ def gen():
     out = []
     for s in json.loads(p.read_text(encoding="utf-8")):
         chs = [{"title": s["title"], "p": [a for a, _ in s["paras"]], "tr": [b for _, b in s["paras"]]}]
-        meta = {"id": s["id"], "title": s["title"], "author": "Akıcı AI", "lv": s["lv"], "kind": "story", "chapters": 1,
+        meta = {"id": s["id"], "title": s["title"], "author": "Lokilingo", "lv": s["lv"], "kind": "story", "chapters": 1,
                 "words": sum(len(a.split()) for a, _ in s["paras"]), "blurb": f"Türkçe çevirili · {s['topic']}", "gen": 1}
         out.append(write(meta, chs))
     print("gen", len(out), "hikâye")

@@ -60,7 +60,7 @@ Explain grammar, words, idioms or differences clearly with 3-5 short English exa
 } as const;
 export type Mode = keyof typeof MODES;
 
-// Herkese açık Akıcı AI aracı (Cloudflare Worker). Adres gizli değildir; anahtar sunucuda durur.
+// Herkese açık Loki AI aracı (Cloudflare Worker). Adres gizli değildir; anahtar sunucuda durur.
 export const AKICI_AI = "https://akici-ai.akici-app.workers.dev";
 function deviceId(): string {
   try {
@@ -77,14 +77,14 @@ async function raw(messages: Msg[], maxTokens: number, json: boolean): Promise<s
     return r.content;
   }
   if (s.aiProvider === "akici") {
-    if (!AKICI_AI) throw new Error("Akıcı AI henüz açılmadı. Ayarlar → Yapay zekâ'dan başka bir sağlayıcı seç.");
+    if (!AKICI_AI) throw new Error("Loki AI henüz açılmadı. Ayarlar → Yapay zekâ'dan başka bir sağlayıcı seç.");
     const r = await fetch(`${AKICI_AI}/chat`, {
       method: "POST",
       headers: { "Content-Type": "application/json", "X-Akici-Device": deviceId() },
       body: JSON.stringify({ messages: messages.map((m) => ({ role: m.role, content: m.content.slice(0, 6000) })).slice(-30), max_tokens: maxTokens, json }),
     });
     const d = await r.json().catch(() => ({}));
-    if (!r.ok) throw new Error(d.error ? `Akıcı AI: ${d.error}` : `Akıcı AI hatası ${r.status}`);
+    if (!r.ok) throw new Error(d.error ? `Loki AI: ${d.error}` : `Loki AI hatası ${r.status}`);
     return d.content || "";
   }
   if (!s.aiKey) throw new Error("API anahtarı girilmemiş (Ayarlar → Yapay zekâ).");

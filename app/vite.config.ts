@@ -10,7 +10,7 @@ export default defineConfig({
       registerType: "autoUpdate",
       includeAssets: ["icon.svg", "icon-192.png", "icon-512.png"],
       manifest: {
-        name: "Akıcı — İngilizce", short_name: "Akıcı", lang: "tr", start_url: "./", display: "standalone",
+        name: "Lokilingo — Loki ile İngilizce", short_name: "Lokilingo", lang: "tr", start_url: "./", display: "standalone",
         background_color: "#f7f4ee", theme_color: "#5b4bff",
         icons: [
           { src: "icon-192.png", sizes: "192x192", type: "image/png" },

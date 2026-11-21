@@ -61,7 +61,7 @@ export default function Reading({ id, params }: { id?: string; params: URLSearch
       {list.length === 0 ? <div className="card muted">Bu filtrede metin yok.</div>
         : <div className="grid g3">{list.slice(0, n).map((b) => <BookCard key={b.id} b={b} />)}</div>}
       {n < list.length && <div className="row" style={{ justifyContent: "center", marginTop: 18 }}><button className="btn" onClick={() => setN(n + 24)}>Daha fazla göster ({list.length - n})</button></div>}
-      <p className="muted tiny" style={{ marginTop: 24 }}>Kaynaklar: TinyStories (CDLA-Sharing-1.0), Simple English Wikipedia (CC BY-SA 4.0), Project Gutenberg (kamu malı). Hikâyeler ve çeviriler Akıcı için üretildi.</p>
+      <p className="muted tiny" style={{ marginTop: 24 }}>Kaynaklar: TinyStories (CDLA-Sharing-1.0), Simple English Wikipedia (CC BY-SA 4.0), Project Gutenberg (kamu malı). Hikâyeler ve çeviriler Lokilingo için üretildi.</p>
     </div>
   );
 }

@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
-    <string name="app_name">Akıcı</string>
-    <string name="title_activity_main">Akıcı</string>
+    <string name="app_name">Lokilingo</string>
+    <string name="title_activity_main">Lokilingo</string>
     <string name="package_name">app.akici.english</string>
     <string name="custom_url_scheme">app.akici.english</string>
 </resources>
