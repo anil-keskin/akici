@@ -44,3 +44,10 @@
 ## 6. Kabul edilen riskler
 - Tarayıcı konuşma tanımasında ses üreticinin sunucusuna gider. Bu yüzden Whisper (yerel) varsayılan seçenektir; tarayıcı tanıması sadece yedek olarak kullanılır.
 - Kullanıcının girdiği bulut AI anahtarı cihazda şifrelenmeden durur. Kişisel cihaz için kabul edildi ve ekranda uyarı gösteriliyor.
+
+## Akıcı AI aracı sunucusu (worker/, 21 Kas)
+- Amaç: APK/site kullanıcılarına anahtarsız AI sohbet. Anahtar sadece Cloudflare secret `GEMINI_KEY`; koda, APK'ya, git'e girmez.
+- Ücret güvencesi: faturalandırması kapalı (ücretsiz kota) Gemini anahtarı → en kötü durumda kota dolar, fatura çıkmaz.
+- Kötüye kullanım: IP başına 12/dk, cihaz başına 8/dk (Workers rate limit), 30 mesaj × 6000 karakter, 40 KB gövde, sabit model, max 1200 token.
+- Gizlilik: içerik loglanmaz (observability kapalı); Settings aydınlatma metni yurtdışı aktarımı (KVKK md. 9) açıklar.
+- Zayıf nokta: cihaz numarası istemci tarafından üretilir, taklit edilebilir; asıl sınır IP sınırı + Gemini kotası.

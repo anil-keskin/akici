@@ -22,3 +22,5 @@ app/android/build/
 app/android/app/build/
 Akici.apk
 server/erisim-kodu.txt
+worker/.dev.vars
+worker/.wrangler/

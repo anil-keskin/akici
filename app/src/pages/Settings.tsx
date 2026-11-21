@@ -1,3 +1,4 @@
+import { AKICI_AI } from "../lib/ai";
 import { useEffect, useState } from "react";
 import { Settings as SetI, Download, Upload, Trash2, ShieldCheck, Server, Sparkles, Volume2, Info } from "lucide-react";
 import { PageHead, toast } from "../components/ui";
@@ -71,7 +72,7 @@ export default function Settings() {
         {PRESETS.find((x) => x.id === presetOf(s))?.hint && <div className="muted small">{PRESETS.find((x) => x.id === presetOf(s))!.hint}</div>}
         <Row l="Model"><input className="input" value={s.aiModel} onChange={(e) => saveSettings({ aiModel: e.target.value.trim() })} /></Row>
         {presetOf(s) === "custom" && <Row l="API adresi"><input className="input" value={s.aiBase} onChange={(e) => saveSettings({ aiBase: e.target.value.trim() })} /></Row>}
-        {s.aiProvider !== "local" && (
+        {s.aiProvider !== "local" && s.aiProvider !== "akici" && (
           <>
             <Row l="API anahtarı"><input className="input" type="password" autoComplete="off" value={s.aiKey} onChange={(e) => saveSettings({ aiKey: e.target.value.trim() })} /></Row>
             <div className="card small" style={{ background: "var(--amber-soft)" }}>
@@ -86,7 +87,7 @@ export default function Settings() {
         <div className="small sub" style={{ lineHeight: 1.7 }}>
           <b>Aydınlatma:</b> Akıcı'nın hesabı, sunucu veritabanı, çerezi ve analitiği yoktur. İlerlemen, kartların ve sohbet geçmişin <b>sadece bu cihazda</b> (tarayıcı veritabanı) tutulur.
           Mikrofon sadece konuşma alıştırmasında açılır; yerel sunucu açıksa ses bu bilgisayarda Whisper ile çözülür ve kalıcı kaydedilmez. Sunucu kapalıysa tarayıcının konuşma tanıması kullanılır (Chrome: Google, Edge: Microsoft).
-          AI sohbette yerel model seçiliyse metin bilgisayardan çıkmaz; bulut sağlayıcı seçersen metin o sağlayıcıya gider. İstediğin an verilerini dışa aktarabilir ya da tamamen silebilirsin (KVKK md. 11).
+          AI sohbette yerel model seçiliyse metin bilgisayardan çıkmaz; bulut sağlayıcı seçersen metin o sağlayıcıya gider. <b>Akıcı AI</b> seçiliyse yazdığın metin Akıcı'nın aracı sunucusu (Cloudflare, ABD) üzerinden Google Gemini'ye iletilir; aracı sunucu metni kaydetmez ve loglamaz, sadece kötüye kullanımı önlemek için IP adresine ve rastgele bir cihaz numarasına göre dakikalık sayaç tutar. Bu yurtdışına aktarımdır (KVKK md. 9): sohbete kişisel bilgi yazma. İstediğin an verilerini dışa aktarabilir ya da tamamen silebilirsin (KVKK md. 11).
         </div>
         <div className="row wrap">
           <button className="btn ghost" onClick={doExport}><Download size={16} /> Yedeği indir</button>
@@ -115,8 +116,10 @@ function Row({ l, children }: { l: string; children: React.ReactNode }) {
   return <label className="row between wrap" style={{ gap: 12 }}><span className="small" style={{ fontWeight: 650, minWidth: 180 }}>{l}</span><div style={{ flex: "1 1 260px", maxWidth: 420, display: "flex", justifyContent: "flex-end" }}>{children}</div></label>;
 }
 
-type Prov = "local" | "openai" | "anthropic";
+type Prov = "akici" | "local" | "openai" | "anthropic";
 const PRESETS: { id: string; label: string; p: Prov; model: string; base?: string; hint?: string }[] = [
+  ...(AKICI_AI ? [{ id: "akici", label: "Akıcı AI — hazır, ücretsiz (anahtar gerekmez)", p: "akici" as Prov, model: "akici",
+    hint: "Mesajların Akıcı'nın aracı sunucusu (Cloudflare) üzerinden Google Gemini'ye gider, kaydedilmez. Kişisel bilgi yazma. Kullanım sınırı vardır." }] : []),
   { id: "local", label: "Yerel (Ollama) — ücretsiz, veri bilgisayardan çıkmaz", p: "local", model: "qwen3:8b" },
   { id: "gemini", label: "Google Gemini — ücretsiz kota", p: "openai", model: "gemini-flash-latest", base: "https://generativelanguage.googleapis.com/v1beta/openai",
     hint: "Anahtar: aistudio.google.com → Get API key (kart gerekmez). Ücretsiz kotada Google yazdıklarını ürün geliştirmek için kullanabilir; kişisel bilgi yazma." },

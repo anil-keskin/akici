@@ -9,7 +9,7 @@ export interface Settings {
   stt: "auto" | "whisper" | "browser";
   server: string;            // boş = aynı adres (yerel sunucu)
   serverToken: string;       // LAN modu erişim kodu
-  aiProvider: "local" | "openai" | "anthropic";
+  aiProvider: "akici" | "local" | "openai" | "anthropic";
   aiModel: string;
   aiBase: string;            // OpenAI uyumlu taban adres
   aiKey: string;             // sadece bu cihazda
@@ -31,6 +31,12 @@ const subs = new Set<(s: Settings) => void>();
 export async function loadSettings() {
   const s = await kvGet<Partial<Settings>>("settings", {});
   current = { ...DEFAULTS, ...s };
+  // İlk açılış: bilgisayardaki yerel sunucuda değilsek hazır Akıcı AI'yı kullan
+  if (!s.aiProvider) {
+    const { AKICI_AI } = await import("./ai");
+    const onPc = /^(127\.|localhost|192\.168\.|10\.|172\.)/.test(location.hostname) && location.protocol === "http:";
+    if (AKICI_AI && !onPc) current = { ...current, aiProvider: "akici", aiModel: "akici" };
+  }
   applyTheme();
   return current;
 }

@@ -43,7 +43,7 @@ export default function Chat({ params }: { params: URLSearchParams }) {
 
   useEffect(() => { kvGet("level", "A2").then(setLv); }, []);
   useEffect(() => {
-    if (s.aiProvider === "local") health(true).then((h) => setReady(!!h.ok && !!h.ollama)); else setReady(!!s.aiKey);
+    if (s.aiProvider === "local") health(true).then((h) => setReady(!!h.ok && !!h.ollama)); else setReady(s.aiProvider === "akici" || !!s.aiKey);
   }, [s.aiProvider, s.aiKey]);
   useEffect(() => {
     const id = params.get("sc");
