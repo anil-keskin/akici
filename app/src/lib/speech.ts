@@ -118,7 +118,7 @@ export async function serverPost<T>(path: string, body: BodyInit, json = true): 
 }
 
 // ---------------------------------------------------------------- kayıt + tanıma
-export interface Heard { text: string; words?: { w: string; p: number }[]; audioUrl?: string; engine: "whisper" | "browser" | "native" }
+export interface Heard { text: string; words?: { w: string; p: number }[]; audioUrl?: string; engine: "whisper" | "browser" | "native" | "cloud" }
 type SR = { lang: string; interimResults: boolean; maxAlternatives: number; continuous: boolean; start(): void; stop(): void; abort(): void; onresult: ((e: any) => void) | null; onerror: ((e: any) => void) | null; onend: (() => void) | null };
 export function browserSTT(): boolean { return !!((window as any).SpeechRecognition || (window as any).webkitSpeechRecognition); }
 
@@ -141,6 +141,11 @@ export class Listener {
     const h = s.stt === "browser" ? { ok: false } : await health();
     this.engine = h.ok && (h as Health).whisper && !/kapalı|yok|error/i.test(String((h as Health).whisper)) ? "whisper" : native.listen ? "native" : "browser";
     if (s.stt === "whisper" && this.engine !== "whisper") throw new Error("Whisper sunucusu açık değil. Ayarlar → Sunucu.");
+    // Telefonda (ya da tarayıcı tanıması yoksa): sesi kaydet, Loki sunucusunda Whisper ile yazıya çevir. Google penceresi yok.
+    if (this.engine === "native" || (this.engine === "browser" && !browserSTT())) {
+      const { AKICI_AI } = await import("./ai");
+      if (AKICI_AI && typeof navigator.mediaDevices?.getUserMedia === "function") this.engine = "cloud";
+    }
     if (this.engine === "native") {
       this.srText = ""; this.t0 = Date.now();
       if (native.listenStart) {
@@ -160,6 +165,7 @@ export class Listener {
     this.rec.ondataavailable = (e) => e.data.size && this.chunks.push(e.data);
     this.rec.start();
     this.t0 = Date.now();
+    if (this.engine === "cloud") this.watchSilence(onAutoStop);
     if (this.engine === "browser") {
       const C = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
       if (C) {
@@ -173,6 +179,29 @@ export class Listener {
     }
     this.timer = window.setTimeout(() => onAutoStop?.(), maxSec * 1000);
   }
+
+  private ac: AudioContext | null = null;
+  private iv: number | undefined;
+  /** Konuşma başlayıp 1,5 sn susunca (ya da 8 sn hiç ses gelmezse) otomatik bitir */
+  private watchSilence(onAutoStop?: () => void) {
+    if (!this.stream || !onAutoStop) return;
+    try {
+      const ac = new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)();
+      const an = ac.createAnalyser(); an.fftSize = 1024;
+      ac.createMediaStreamSource(this.stream).connect(an);
+      const buf = new Float32Array(an.fftSize);
+      let spoke = false, quietSince = Date.now(); const start = Date.now();
+      this.ac = ac;
+      this.iv = window.setInterval(() => {
+        an.getFloatTimeDomainData(buf);
+        let sum = 0; for (const v of buf) sum += v * v;
+        const rms = Math.sqrt(sum / buf.length);
+        if (rms > 0.02) { spoke = true; quietSince = Date.now(); this.onPartial?.("🎙️ …"); }
+        if ((spoke && Date.now() - quietSince > 1500) || (!spoke && Date.now() - start > 8000)) { this.stopWatch(); onAutoStop(); }
+      }, 100);
+    } catch { /* ses analizi yok: süre sınırı yeter */ }
+  }
+  private stopWatch() { clearInterval(this.iv); this.iv = undefined; try { this.ac?.close(); } catch { /* */ } this.ac = null; }
 
   async stop(): Promise<Heard> {
     clearTimeout(this.timer);
@@ -194,6 +223,16 @@ export class Listener {
     this.stream?.getTracks().forEach((t) => t.stop());
     const audioUrl = URL.createObjectURL(blob);
     addStat({ speakSec: Math.round((Date.now() - this.t0) / 1000) });
+    this.stopWatch();
+    if (this.engine === "cloud") {
+      if (blob.size < 2000) return { text: "", audioUrl, engine: "cloud" };
+      const { AKICI_AI } = await import("./ai");
+      let dev = "anon"; try { dev = localStorage.getItem("akici-device") || "anon"; } catch { /* */ }
+      const r = await fetch(`${AKICI_AI}/stt`, { method: "POST", headers: { "Content-Type": (blob.type || "audio/webm").split(";")[0], "X-Akici-Device": dev }, body: blob });
+      const d = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error(d.error ? `Ses tanıma: ${d.error}` : `Ses tanıma hatası ${r.status}`);
+      return { text: String(d.text || ""), audioUrl, engine: "cloud" };
+    }
     if (this.engine === "whisper") {
       const r = await serverPost<{ text: string; words: { w: string; p: number }[] }>("/api/score", blob, false);
       return { text: r.text, words: r.words, audioUrl, engine: "whisper" };
@@ -205,7 +244,7 @@ export class Listener {
   }
 
   cancel() {
-    clearTimeout(this.timer);
+    clearTimeout(this.timer); this.stopWatch();
     try { this.rec?.stop(); } catch { /* */ }
     try { this.sr?.abort(); } catch { /* */ }
     this.stream?.getTracks().forEach((t) => t.stop());

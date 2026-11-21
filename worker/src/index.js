@@ -45,6 +45,31 @@ async function ytFeed(url) {
   return json({ items });
 }
 
+// Konuşmayı yazıya çevir: Groq Whisper (ses saklanmaz, sadece iletilir). En fazla ~30 sn / 3 MB.
+async function stt(req, env) {
+  if (!env.GROQ_KEY) return json({ error: "ses tanıma kurulmadı" }, 503);
+  const ip = req.headers.get("CF-Connecting-IP") || "?";
+  const device = (req.headers.get("X-Akici-Device") || "").slice(0, 64) || ip;
+  const [a, b] = await Promise.all([env.PER_IP.limit({ key: "stt:" + ip }), env.PER_DEVICE.limit({ key: "stt:" + device })]);
+  if (!a.success || !b.success) return json({ error: "çok hızlı; bir dakika bekle" }, 429);
+  const len = Number(req.headers.get("Content-Length") || 0);
+  if (!len || len > 3_000_000) return json({ error: "ses kaydı çok uzun" }, 413);
+  const type = (req.headers.get("Content-Type") || "audio/webm").split(";")[0];
+  if (!/^audio\/(webm|ogg|mp4|mpeg|wav|aac|x-m4a)$/.test(type)) return json({ error: "desteklenmeyen ses türü" }, 415);
+  const audio = await req.arrayBuffer();
+  const ext = { "audio/webm": "webm", "audio/ogg": "ogg", "audio/mp4": "m4a", "audio/x-m4a": "m4a", "audio/aac": "m4a", "audio/mpeg": "mp3", "audio/wav": "wav" }[type] || "webm";
+  const fd = new FormData();
+  fd.append("file", new Blob([audio], { type }), "speech." + ext);
+  fd.append("model", "whisper-large-v3-turbo");
+  fd.append("language", "en");
+  fd.append("response_format", "json");
+  const r = await fetch("https://api.groq.com/openai/v1/audio/transcriptions", { method: "POST", headers: { Authorization: `Bearer ${env.GROQ_KEY}` }, body: fd });
+  if (r.status === 429) return json({ error: "günlük ses kotası doldu; yarın tekrar dene" }, 429);
+  if (!r.ok) return json({ error: `ses tanınamadı (${r.status})` }, 502);
+  const d = await r.json();
+  return json({ text: String(d.text || "").trim() });
+}
+
 const CORS = { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Methods": "GET, POST, OPTIONS", "Access-Control-Allow-Headers": "Content-Type, X-Akici-Device", "Access-Control-Max-Age": "86400" };
 
 const json = (obj, status = 200) => new Response(JSON.stringify(obj), { status, headers: { ...CORS, "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store" } });
@@ -56,6 +81,7 @@ export default {
     if (url.pathname === "/health") return json({ ok: true, model: MODEL });
     if (req.method === "GET" && url.pathname === "/yt") return ytSearch(url, req, env);
     if (req.method === "GET" && url.pathname === "/ytfeed") return ytFeed(url);
+    if (req.method === "POST" && url.pathname === "/stt") return stt(req, env);
     if (req.method !== "POST" || url.pathname !== "/chat") return json({ error: "bulunamadı" }, 404);
 
     const ip = req.headers.get("CF-Connecting-IP") || "?";

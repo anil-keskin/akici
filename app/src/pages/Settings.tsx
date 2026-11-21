@@ -87,7 +87,7 @@ export default function Settings() {
       <Sec t="Gizlilik ve veriler (KVKK)" i={<ShieldCheck />}>
         <div className="small sub" style={{ lineHeight: 1.7 }}>
           <b>Aydınlatma:</b> Lokilingo'nun hesabı, sunucu veritabanı, çerezi ve analitiği yoktur. İlerlemen, kartların ve sohbet geçmişin <b>sadece bu cihazda</b> (tarayıcı veritabanı) tutulur.
-          Mikrofon sadece konuşma alıştırmasında açılır; yerel sunucu açıksa ses bu bilgisayarda Whisper ile çözülür ve kalıcı kaydedilmez. Sunucu kapalıysa tarayıcının konuşma tanıması kullanılır (Chrome: Google, Edge: Microsoft).
+          Mikrofon sadece konuşma alıştırmasında açılır; telefon uygulamasında ses kısa kayıt olarak aracı sunucu üzerinden Groq'a (ABD) gönderilip yazıya çevrilir ve saklanmaz; yerel sunucu açıksa ses bu bilgisayarda Whisper ile çözülür ve kalıcı kaydedilmez. Sunucu kapalıysa tarayıcının konuşma tanıması kullanılır (Chrome: Google, Edge: Microsoft).
           AI sohbette yerel model seçiliyse metin bilgisayardan çıkmaz; bulut sağlayıcı seçersen metin o sağlayıcıya gider. <b>Loki AI</b> seçiliyse yazdığın metin Lokilingo'nun aracı sunucusu (Cloudflare, ABD) üzerinden Cloudflare Workers AI'ya (bazen Google Gemini'ye) iletilir; aracı sunucu metni kaydetmez ve loglamaz, sadece kötüye kullanımı önlemek için IP adresine ve rastgele bir cihaz numarasına göre dakikalık sayaç tutar. Bu yurtdışına aktarımdır (KVKK md. 9): sohbete kişisel bilgi yazma. İstediğin an verilerini dışa aktarabilir ya da tamamen silebilirsin (KVKK md. 11).
         </div>
         <div className="card col" style={{ gap: 8 }}>

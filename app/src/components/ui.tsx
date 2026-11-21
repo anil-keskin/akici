@@ -173,7 +173,8 @@ export function useMicConsent(): [boolean, () => Promise<boolean>, ReactNode] {
           <div className="row" style={{ alignItems: "flex-start" }}><ShieldCheck color="var(--mint)" style={{ flex: "none" }} />
             <div className="small">
               <b>Yerel sunucu açıksa (önerilen):</b> sesin bu bilgisayarda Whisper ile çözülür, internete gitmez ve kalıcı kaydedilmez.<br />
-              <b>Sunucu kapalıysa:</b> tarayıcının konuşma tanıması kullanılır; ses Chrome'da Google'a, Edge'de Microsoft'a gider.<br />
+              <b>Telefon uygulamasında:</b> konuşman kısa bir ses kaydı olarak Lokilingo'nun aracı sunucusu (Cloudflare) üzerinden Groq'a (ABD) gönderilir, yazıya çevrilir ve saklanmaz. Bu yurtdışına aktarımdır (KVKK md. 9).<br />
+              <b>Tarayıcıda, sunucu kapalıysa:</b> tarayıcının konuşma tanıması kullanılır; ses Chrome'da Google'a, Edge'de Microsoft'a gider.<br />
               Kendi sesini tekrar dinleyebilmen için kayıt sadece bu sayfada geçici tutulur. Onayı istediğin an Ayarlar → Gizlilik'ten geri alabilirsin.
             </div>
           </div>
