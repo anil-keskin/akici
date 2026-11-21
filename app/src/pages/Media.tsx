@@ -10,6 +10,7 @@ import { speak, stopSpeaking } from "../lib/speech";
 import { addStat } from "../lib/stats";
 import { sfx } from "../lib/sfx";
 import { go } from "../lib/router";
+import { usePersist } from "../lib/persist";
 import { AKICI_AI, aiJson, translateTr } from "../lib/ai";
 
 interface Song { id: string; title: string; lv: string; by: string; lines: [string, string][] }
@@ -43,6 +44,11 @@ export default function Media({ id, params }: { id?: string; params: URLSearchPa
 }
 
 /* ---------- YouTube: ara, İngilizce altyazıyla izle, kendi altyazınla çift altyazı ---------- */
+const YT_CH = [
+  { k: "bbc", label: "BBC Learning English" }, { k: "voa", label: "VOA Learning English" }, { k: "lucy", label: "English with Lucy" },
+  { k: "vanessa", label: "Speak English with Vanessa" }, { k: "teded", label: "TED-Ed" }, { k: "kurz", label: "Kurzgesagt" },
+  { k: "ted", label: "TED" }, { k: "khan", label: "Khan Academy" },
+];
 const YT_IDEAS = ["English songs with lyrics", "BBC Learning English", "TED-Ed", "Friends scenes English subtitles", "English conversation practice", "Kurzgesagt", "kids stories in English", "6 Minute English"];
 function YouTube({ v, title }: { v: string | null; title: string }) {
   const [q, setQ] = useState("");
@@ -54,25 +60,38 @@ function YouTube({ v, title }: { v: string | null; title: string }) {
     try {
       const r = await fetch(`${AKICI_AI}/yt?q=${encodeURIComponent(term)}`);
       const d = await r.json();
+      if (r.status === 503) { setNoSearch(true); loadCh(ch); return; }
       if (!r.ok) { setMsg(d.error || "Arama yapılamadı"); setRes([]); return; }
       setRes(d.items);
     } catch { setMsg("Arama yapılamadı (internet?)"); setRes([]); }
   };
+  const [ch, setCh] = usePersist<string>("yt.ch", "bbc");
+  const [noSearch, setNoSearch] = usePersist<boolean>("yt.nosearch2", true);
+  const loadCh = async (k: string) => {
+    setCh(k); setQ(""); setMsg(""); setRes(null);
+    try { const r = await fetch(`${AKICI_AI}/ytfeed?ch=${k}`); const d = await r.json(); setRes(r.ok ? d.items : []); if (!r.ok) setMsg(d.error || "Kanal yüklenemedi"); }
+    catch { setMsg("Kanal yüklenemedi (internet?)"); setRes([]); }
+  };
+  useEffect(() => { if (!v) loadCh(ch); }, [v]); // eslint-disable-line react-hooks/exhaustive-deps
   if (v) return <YTWatch id={v} title={title} />;
   const dec = (t: string) => { const e = document.createElement("textarea"); e.innerHTML = t; return e.value; };
   return (
     <div className="col" style={{ gap: 12 }}>
-      <form className="row" style={{ gap: 8 }} onSubmit={(e) => { e.preventDefault(); if (q.trim()) search(q.trim()); }}>
-        <input className="input" placeholder="YouTube'da ara (sadece altyazılı videolar)…" value={q} maxLength={100} onChange={(e) => setQ(e.target.value)} />
-        <button className="btn primary" aria-label="Ara"><Search size={18} /></button>
-      </form>
-      <div className="scroll-x">{YT_IDEAS.map((x) => <button key={x} className="chip" onClick={() => search(x)}>{x}</button>)}</div>
-      {msg && <div className="card small" style={{ background: "var(--amber-soft)" }}>{msg}. Bu arada YouTube bağlantısını aşağıya yapıştırarak izleyebilirsin.</div>}
+      <div className="muted tiny">İNGİLİZCE ÖĞRETEN KANALLAR (en yeni videolar)</div>
+      <div className="scroll-x">{YT_CH.map((x) => <button key={x.k} className={`chip ${ch === x.k && !q ? "on" : ""}`} onClick={() => loadCh(x.k)}>{x.label}</button>)}</div>
+      {!noSearch && <>
+        <form className="row" style={{ gap: 8 }} onSubmit={(e) => { e.preventDefault(); if (q.trim()) search(q.trim()); }}>
+          <input className="input" placeholder="YouTube'da ara (sadece altyazılı videolar)…" value={q} maxLength={100} onChange={(e) => setQ(e.target.value)} />
+          <button className="btn primary" aria-label="Ara"><Search size={18} /></button>
+        </form>
+        <div className="scroll-x">{YT_IDEAS.map((x) => <button key={x} className="chip" onClick={() => search(x)}>{x}</button>)}</div>
+      </>}
+      {msg && <div className="card small" style={{ background: "var(--amber-soft)" }}>{msg}</div>}
       <form className="row" style={{ gap: 8 }} onSubmit={(e) => { e.preventDefault(); const id = ytId(link); if (id) go(`/medya/youtube?v=${id}`); else toast("Geçerli bir YouTube bağlantısı değil"); }}>
         <input className="input" placeholder="…ya da YouTube bağlantısı yapıştır" value={link} onChange={(e) => setLink(e.target.value.trim())} />
         <button className="btn">İzle</button>
       </form>
-      {res === null && q && <Spinner label=" Aranıyor…" />}
+      {res === null && <Spinner label=" Videolar getiriliyor…" />}
       {res && res.length > 0 && <div className="grid g2">
         {res.map((x) => (
           <div key={x.id} className="card hover col" style={{ gap: 8, padding: 10 }} onClick={() => go(`/medya/youtube?v=${x.id}&t=${encodeURIComponent(dec(x.title).slice(0, 90))}`)}>

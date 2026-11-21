@@ -24,6 +24,27 @@ async function ytSearch(url, req, env) {
   return json({ items: (d.items || []).map((x) => ({ id: x.id?.videoId, title: x.snippet?.title, channel: x.snippet?.channelTitle, thumb: x.snippet?.thumbnails?.medium?.url })).filter((x) => x.id) });
 }
 
+// Anahtarsız: seçili eğitim kanallarının herkese açık RSS akışı (son ~15 video)
+const CHANNELS = {
+  bbc: "UCHaHD477h-FeBbVh9Sh7syA", voa: "UCKyTokYo0nK2OA-az-sDijA", lucy: "UCz4tgANd4yy8Oe0iXCdSWfA", vanessa: "UCxJGMJbjokfnr2-s4_RXPxQ",
+  teded: "UCsooa4yRKGN_zEE8iknghZA", kurz: "UCsXVk37bltHxD1rDPwtNM8Q", ted: "UCAuUUnT6oDeKwE6v1NGQxug", khan: "UC4a-Gbdw7vOaccHmFo40b9g",
+};
+async function ytFeed(url) {
+  const id = CHANNELS[url.searchParams.get("ch") || ""];
+  if (!id) return json({ error: "kanal yok" }, 404);
+  const r = await fetch(`https://www.youtube.com/feeds/videos.xml?channel_id=${id}`, { cf: { cacheTtl: 1800, cacheEverything: true } });
+  if (!r.ok) return json({ error: `akış alınamadı ${r.status}` }, 502);
+  const xml = await r.text();
+  const items = [...xml.matchAll(/<entry>([\s\S]*?)<\/entry>/g)].map((m) => {
+    const e = m[1];
+    const vid = (e.match(/<yt:videoId>([^<]+)</) || [])[1];
+    const title = (e.match(/<title>([^<]*)</) || [])[1] || "";
+    const channel = (xml.match(/<author>\s*<name>([^<]+)</) || [])[1] || "";
+    return vid ? { id: vid, title, channel, thumb: `https://i.ytimg.com/vi/${vid}/mqdefault.jpg` } : null;
+  }).filter(Boolean);
+  return json({ items });
+}
+
 const CORS = { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Methods": "GET, POST, OPTIONS", "Access-Control-Allow-Headers": "Content-Type, X-Akici-Device", "Access-Control-Max-Age": "86400" };
 
 const json = (obj, status = 200) => new Response(JSON.stringify(obj), { status, headers: { ...CORS, "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store" } });
@@ -34,6 +55,7 @@ export default {
     if (req.method === "OPTIONS") return new Response(null, { status: 204, headers: CORS });
     if (url.pathname === "/health") return json({ ok: true, model: MODEL });
     if (req.method === "GET" && url.pathname === "/yt") return ytSearch(url, req, env);
+    if (req.method === "GET" && url.pathname === "/ytfeed") return ytFeed(url);
     if (req.method !== "POST" || url.pathname !== "/chat") return json({ error: "bulunamadı" }, 404);
 
     const ip = req.headers.get("CF-Connecting-IP") || "?";
