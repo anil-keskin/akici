@@ -21,8 +21,10 @@ export default defineConfig({
       workbox: {
         globPatterns: ["**/*.{js,css,html,svg,png,woff2}"],
         maximumFileSizeToCacheInBytes: 6 * 1024 * 1024,
-        navigateFallbackDenylist: [/^\/api\//],
+        // Sayfanın kendisi her zaman önce internetten gelsin (eski sürümde takılı kalınmasın); internet yoksa önbellekten
+        navigateFallback: null,
         runtimeCaching: [
+          { urlPattern: ({ request }) => request.mode === "navigate", handler: "NetworkFirst", options: { cacheName: "akici-pages", networkTimeoutSeconds: 4 } },
           { urlPattern: ({ url }) => url.pathname.includes("/data/"), handler: "StaleWhileRevalidate", options: { cacheName: "akici-data", expiration: { maxEntries: 200 } } },
           { urlPattern: ({ url }) => url.pathname.includes("/audio/"), handler: "CacheFirst", options: { cacheName: "akici-audio", expiration: { maxEntries: 8000 } } },
         ],
