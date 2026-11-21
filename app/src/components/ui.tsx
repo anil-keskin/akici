@@ -160,10 +160,13 @@ export function useMicConsent(): [boolean, () => Promise<boolean>, ReactNode] {
   const [ok, setOk] = useState(false);
   const [ask, setAsk] = useState<null | ((v: boolean) => void)>(null);
   useEffect(() => { kvGet("micConsent", false).then(setOk); }, []);
-  const request = () => new Promise<boolean>((res) => {
-    if (ok) return res(true);
-    setAsk(() => (v: boolean) => { setAsk(null); if (v) { kvSet("micConsent", true); setOk(true); } res(v); });
-  });
+  // Onay kayıtlıysa bir daha sorma (eski bir ekran durumu yüzünden tekrar sorulmasın diye her seferinde kayda bakılır)
+  const request = async () => {
+    if (ok || (await kvGet("micConsent", false))) { setOk(true); return true; }
+    return new Promise<boolean>((res) => {
+      setAsk(() => (v: boolean) => { setAsk(null); if (v) { kvSet("micConsent", true); setOk(true); } res(v); });
+    });
+  };
   const ui = (
     <Sheet open={!!ask} onClose={() => ask?.(false)}>
       <div className="col" style={{ gap: 14 }}>
