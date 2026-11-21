@@ -1,0 +1,7 @@
+{
+  "appId": "app.akici.english",
+  "appName": "Akıcı",
+  "webDir": "dist",
+  "android": { "allowMixedContent": false },
+  "server": { "androidScheme": "https" }
+}

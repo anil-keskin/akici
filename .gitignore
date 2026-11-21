@@ -14,3 +14,10 @@ __pycache__/
 !.env.example
 *.keystore
 *.jks
+
+# Android
+app/android/local.properties
+app/android/.gradle/
+app/android/build/
+app/android/app/build/
+Akici.apk
