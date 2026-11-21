@@ -73,7 +73,12 @@ export async function speak(text: string, opts: { rate?: number; slow?: boolean;
       a.play().catch(() => res());
     });
   }
-  if (native.speak) return new Promise((res) => { pendingDone = res; native.speak!(text, s.accent, rate).catch(() => null).finally(() => res()); });
+  if (native.speak) return new Promise((res) => {
+    pendingDone = res;
+    // Bazı telefonlarda konuşma bitti haberi gelmiyor: tahmini süre dolunca yine de devam et
+    const guard = window.setTimeout(() => res(), 2500 + text.length * 95 / Math.max(0.5, rate));
+    native.speak!(text, s.accent, rate).catch(() => null).finally(() => { clearTimeout(guard); res(); });
+  });
   if (!("speechSynthesis" in window)) return;
   return new Promise((res) => {
     pendingDone = res;
