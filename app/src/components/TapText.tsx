@@ -2,7 +2,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Volume2, Plus, Check, Languages, Square } from "lucide-react";
 import { Lv, toast } from "./ui";
-import { findWord, type Word } from "../lib/data";
+import { findWord, type Word, trShow } from "../lib/data";
 import { addCard } from "../lib/srs";
 import { speak, stopSpeaking } from "../lib/speech";
 import { sentenceAt, translateTr } from "../lib/ai";
@@ -67,7 +67,7 @@ export function TapText({ paras, tr }: { paras: string[]; tr?: string[] }) {
               <button className="btn icon" aria-label="Kapat" onClick={() => { setSel(null); setSent(null); }}>✕</button>
             </div>
           </div>
-          <div style={{ marginTop: 6, fontWeight: 650 }}>{sel.w ? (sel.w.tr.slice(0, 3).join(" · ") || sel.w.d[0]?.g) : "Sözlükte yok (özel isim olabilir)."}</div>
+          <div style={{ marginTop: 6, fontWeight: 650 }}>{sel.w ? (trShow(sel.w.tr, 3) || sel.w.d[0]?.g) : "Sözlükte yok (özel isim olabilir)."}</div>
           {!sent ? <button className="btn sm ghost" style={{ marginTop: 8 }} onClick={transSentence}><Languages size={14} /> Bu cümleyi çevir</button>
             : <div className="card small" style={{ marginTop: 8, padding: "8px 10px", background: "var(--iris-soft)" }}>
                 <div className="muted tiny" style={{ fontStyle: "italic" }}>{sent.en}</div>

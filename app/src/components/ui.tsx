@@ -100,7 +100,7 @@ export function ConfettiHost() {
 
 export function PageHead({ title, sub, right, icon }: { title: string; sub?: string; right?: ReactNode; icon?: ReactNode }) {
   return (
-    <div className="row between wrap" style={{ marginBottom: 22, gap: 16 }}>
+    <div className="row between wrap pagehead" style={{ marginBottom: 22, gap: 16 }}>
       <div className="row" style={{ gap: 14 }}>
         {icon}
         <div>

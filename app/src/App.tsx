@@ -63,9 +63,9 @@ const TITLES: Record<string, string> = Object.fromEntries([
 ]);
 const TABS = [
   { to: "/", label: "Bugün", icon: HomeI, match: ["/", "/ders", "/tekrar"] },
-  { to: "/ogren", label: "Öğren", icon: LayoutGrid, match: ["/ogren", "/kelimeler", "/gramer", "/kaliplar", "/okuma", "/medya", "/kesfet"] },
-  { to: "/konusma", label: "Konuş", icon: Mic, match: ["/konusma", "/dinleme", "/senaryolar"] },
-  { to: "/sohbet", label: "Sohbet", icon: MessageCircle, match: ["/sohbet"] },
+  { to: "/ogren", label: "Öğren", icon: LayoutGrid, match: ["/ogren", "/kelimeler", "/gramer", "/kaliplar", "/okuma", "/medya", "/konusma", "/dinleme", "/senaryolar"] },
+  { to: "/kesfet", label: "Keşfet", icon: Compass, match: ["/kesfet"] },
+  { to: "/sohbet", label: "Loki", icon: MessageCircle, match: ["/sohbet"] },
   { to: "/ilerleme", label: "Sen", icon: BarChart3, match: ["/ilerleme", "/ayarlar", "/test"] },
 ];
 

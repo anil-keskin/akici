@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { MonitorPlay, Search, Music, Clapperboard, MessagesSquare, Upload, Play, Square, Languages, Gamepad2, Plus, Trash2, ArrowLeft, Check, Volume2 } from "lucide-react";
 import { AudioBtn, Lv, PageHead, Spinner, toast, confetti } from "../components/ui";
-import { findWord, load, shuffle, type Word } from "../lib/data";
+import { findWord, load, shuffle, type Word, trShow } from "../lib/data";
 import { db, type MediaRow } from "../lib/db";
 import { addCard } from "../lib/srs";
 import { speak, stopSpeaking } from "../lib/speech";
@@ -295,7 +295,7 @@ function LinePlayer({ title, sub, lines, back, video, onDelete, onSaveTr }: { ti
               <button className="btn icon" aria-label="Kapat" onClick={() => setWord(null)}>✕</button>
             </div>
           </div>
-          <div style={{ marginTop: 6, fontWeight: 650 }}>{word.w ? (word.w.tr.slice(0, 3).join(" · ") || word.w.d[0]?.g) : "Sözlükte yok."}</div>
+          <div style={{ marginTop: 6, fontWeight: 650 }}>{word.w ? (trShow(word.w.tr, 3) || word.w.d[0]?.g) : "Sözlükte yok."}</div>
         </div>
       )}
     </div>

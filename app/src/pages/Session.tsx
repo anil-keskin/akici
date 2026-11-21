@@ -3,7 +3,7 @@ import { X, Flame, Trophy, Target, Repeat } from "lucide-react";
 import { Bar, Mascot, Spinner, confetti } from "../components/ui";
 import { Build, Choice, ClozeLine, Intro, Match, Speak, Typing, blankOut, type Result } from "../components/Exercises";
 import { db, kvGet } from "../lib/db";
-import { words, sentences, shuffle, pick, type Level, type Word } from "../lib/data";
+import { words, sentences, shuffle, pick, type Level, type Word, trShow } from "../lib/data";
 import { addCard, dueCards, review, Rating, cardId } from "../lib/srs";
 import { addStat, streak } from "../lib/stats";
 import { getSettings } from "../lib/settings";
@@ -135,7 +135,7 @@ export function StepView({ step, onDone }: { step: Step; onDone: (r: Result) => 
     case "intro": return <Intro w={step.w} example={step.ex ? [step.ex[1], step.ex[2]] : undefined} onDone={onDone} />;
     case "en2tr": return <Choice prompt={<div className="prompt-word">{step.w.w}</div>} sub="Anlamı ne?" audio={step.w.w} options={step.opts} answer={meaning(step.w)} onDone={onDone} />;
     case "tr2en": return <Choice prompt={<div className="h2">“{meaning(step.w)}”</div>} sub="İngilizcesi hangisi?" options={step.opts} answer={step.w.w} onDone={onDone} />;
-    case "type": return <Typing prompt={<><div className="muted">İngilizcesini yaz</div><div className="h2" style={{ marginTop: 6 }}>{step.w.tr.slice(0, 2).join(" · ") || step.w.d[0]?.g}</div></>}
+    case "type": return <Typing prompt={<><div className="muted">İngilizcesini yaz</div><div className="h2" style={{ marginTop: 6 }}>{trShow(step.w.tr, 2) || step.w.d[0]?.g}</div></>}
       answers={[step.w.w]} placeholder="İngilizce…" onDone={onDone} extra={step.w.ipa || undefined} />;
     case "listen": return <Typing prompt={<div className="h3">Duyduğun kelimeyi yaz</div>} audio={step.w.w} answers={[step.w.w]} onDone={onDone} extra={meaning(step.w)} />;
     case "cloze": {

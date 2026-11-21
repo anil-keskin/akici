@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Plus, Check, Sparkles } from "lucide-react";
-import { POS_TR, sentencesById, type Word, type Sentence } from "../lib/data";
+import { POS_TR, sentencesById, type Word, type Sentence, trShow } from "../lib/data";
 import { addCard, cardId, hasCard } from "../lib/srs";
 import { AudioBtn, Lv, Sheet, toast } from "./ui";
 import { go } from "../lib/router";
@@ -29,7 +29,7 @@ export function WordView({ w }: { w: Word }) {
         {w.fl.map((f) => <span key={f} className="tag">{f}</span>)}
         {!!w.mt && <span className="tag mt" title="Bu karşılık yerel yapay zekâ ile çevrildi">makine çevirisi</span>}
       </div>
-      {w.tr.length > 0 && <div className="h3" style={{ fontSize: 22 }}>{w.tr.join(" · ")}</div>}
+      {w.tr.length > 0 && <div className="h3" style={{ fontSize: 22 }}>{trShow(w.tr, 6)}</div>}
       {w.d.length > 0 && (
         <div className="card" style={{ background: "var(--surface-2)", padding: 16 }}>
           {w.d.map((d, i) => (

@@ -4,7 +4,7 @@ import { AudioBtn, Bar, Lv, Mascot, Ring } from "../components/ui";
 import { WordSheet } from "../components/WordSheet";
 import { counts } from "../lib/srs";
 import { goal, levelFromXp, onStats, streak, today, totalXp } from "../lib/stats";
-import { phrases, words, type Phrase, type Word, KIND_TR } from "../lib/data";
+import { phrases, words, type Phrase, type Word, KIND_TR, trShow } from "../lib/data";
 import { db, kvGet } from "../lib/db";
 import { go } from "../lib/router";
 
@@ -71,15 +71,17 @@ export default function Home() {
               <div className="loki-bounce" style={{ background: "rgba(255,255,255,.9)", borderRadius: "50%", padding: 4, flex: "none" }}><Mascot size={58} /></div>
               <h1 className="h1" style={{ color: "#fff" }}>{hello()}{name ? `, ${name}` : ""}!</h1>
             </div>
-            <div className="sub">{st.due > 0 ? `${st.due} kart tekrarını bekliyor. ` : ""}Bugünkü dersin hazır: yeni kelimeler, gramer, dinleme ve konuşma karışık.</div>
+            <div className="sub hero-sub">{st.due > 0 ? `${st.due} kart tekrarını bekliyor. ` : ""}Bugünkü dersin hazır: yeni kelimeler, gramer, dinleme ve konuşma karışık.</div>
             <div className="row wrap" style={{ marginTop: 8 }}>
               <button className="btn big white" onClick={() => go("/ders")}><Sparkles size={20} /> {st.xp > 0 ? "Devam et" : "Günün dersine başla"}</button>
               {st.due > 0 && <button className="btn big" style={{ background: "rgba(255,255,255,.16)", color: "#fff" }} onClick={() => go("/tekrar")}><Repeat size={20} /> Tekrar ({st.due})</button>}
             </div>
           </div>
-          <Ring value={pct} size={150} stroke={14} track="rgba(255,255,255,.2)">
+          <div className="hero-bar"><div className="row between small" style={{ fontWeight: 700 }}><span>Günlük hedef</span><span>{st.xp} / {st.goal} XP</span></div>
+            <div style={{ height: 10, borderRadius: 99, background: "rgba(255,255,255,.25)", marginTop: 6 }}><div style={{ height: "100%", width: `${Math.min(100, pct * 100)}%`, borderRadius: 99, background: "#ffd166" }} /></div></div>
+          <div className="hero-ring"><Ring value={pct} size={150} stroke={14} track="rgba(255,255,255,.2)">
             <div><div style={{ fontSize: 32, fontWeight: 800 }}>{st.xp}</div><div className="small" style={{ opacity: .8 }}>/ {st.goal} XP</div></div>
-          </Ring>
+          </Ring></div>
         </div>
       </div>
 
@@ -100,7 +102,7 @@ export default function Home() {
               <div>
                 <div className="display" style={{ fontSize: 36, fontWeight: 650 }}>{wod.w}</div>
                 <div className="ipa">{wod.ipa}</div>
-                <div className="sub" style={{ marginTop: 6 }}>{wod.tr.slice(0, 3).join(" · ") || wod.d[0]?.g}</div>
+                <div className="sub" style={{ marginTop: 6 }}>{trShow(wod.tr, 3) || wod.d[0]?.g}</div>
               </div>
               <AudioBtn text={wod.w} slow={false} />
             </div>
@@ -112,7 +114,7 @@ export default function Home() {
             <div className="row between" style={{ marginTop: 8 }}>
               <div>
                 <div className="display" style={{ fontSize: 30, fontWeight: 650 }}>{pod.w}</div>
-                <div className="sub" style={{ marginTop: 6 }}>{pod.tr.join(" · ")}</div>
+                <div className="sub" style={{ marginTop: 6 }}>{trShow(pod.tr, 6)}</div>
                 {pod.ex && <div className="muted small" style={{ marginTop: 6, fontStyle: "italic" }}>“{pod.ex}”</div>}
               </div>
               <AudioBtn text={pod.ex || pod.w} slow={false} />

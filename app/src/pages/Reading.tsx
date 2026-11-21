@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Library, ArrowLeft, ChevronLeft, ChevronRight, Volume2, Plus, Check, Languages, Square } from "lucide-react";
 import { Lv, PageHead, Spinner, toast } from "../components/ui";
-import { findWord, load, type Level, type Word } from "../lib/data";
+import { findWord, load, type Level, type Word, trShow } from "../lib/data";
 import { db } from "../lib/db";
 import { addCard, cardId } from "../lib/srs";
 import { speak, stopSpeaking } from "../lib/speech";
@@ -160,7 +160,7 @@ function Reader({ id, ch }: { id: string; ch: number }) {
               <button className="btn icon" aria-label="Kapat" onClick={() => { setSel(null); setSent(null); }}>✕</button>
             </div>
           </div>
-          <div style={{ marginTop: 6, fontWeight: 650 }}>{sel.w ? (sel.w.tr.slice(0, 3).join(" · ") || sel.w.d[0]?.g) : "Sözlükte yok (özel isim olabilir)."}</div>
+          <div style={{ marginTop: 6, fontWeight: 650 }}>{sel.w ? (trShow(sel.w.tr, 3) || sel.w.d[0]?.g) : "Sözlükte yok (özel isim olabilir)."}</div>
           {sel.w && sel.w.d[0] && sel.w.tr.length > 0 && <div className="muted small">{sel.w.d[0].g}</div>}
           {!sent ? <button className="btn sm ghost" style={{ marginTop: 8 }} onClick={transSentence}><Languages size={14} /> Bu cümleyi çevir</button>
             : <div className="card small" style={{ marginTop: 8, padding: "8px 10px", background: "var(--iris-soft)" }}>

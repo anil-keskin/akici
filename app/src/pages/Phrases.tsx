@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { usePersist } from "../lib/persist";
 import { Quote, Plus, Check, Search, Sparkles } from "lucide-react";
 import { AudioBtn, PageHead, Spinner, toast, Sheet } from "../components/ui";
-import { KIND_TR, phrases, type Phrase } from "../lib/data";
+import { KIND_TR, phrases, type Phrase, trShow } from "../lib/data";
 import { db } from "../lib/db";
 import { addCard } from "../lib/srs";
 import { norm } from "../lib/grade";
@@ -61,7 +61,7 @@ export default function Phrases() {
             <div className="row between"><b className="display" style={{ fontSize: 21 }}>{p.w}</b>
               <button className="btn icon sm" aria-label="Desteye ekle" disabled={deck.has(p.id)} onClick={(e) => { e.stopPropagation(); add(p); }}>{deck.has(p.id) ? <Check size={16} color="var(--mint)" /> : <Plus size={16} />}</button>
             </div>
-            <div style={{ fontWeight: 650 }}>{p.tr.join(" · ") || <span className="muted small">{p.g}</span>}</div>
+            <div style={{ fontWeight: 650 }}>{trShow(p.tr, 6) || <span className="muted small">{p.g}</span>}</div>
             {p.ex && <div className="muted small" style={{ fontStyle: "italic" }}>“{p.ex}”</div>}
           </div>
         ))}
@@ -78,7 +78,7 @@ export default function Phrases() {
           <div className="col" style={{ gap: 14 }}>
             <span className="tag">{KIND_TR[open.k]}</span>
             <div className="row between"><div className="display" style={{ fontSize: 38, fontWeight: 650 }}>{open.w}</div><AudioBtn text={open.w} /></div>
-            {open.tr.length > 0 && <div className="h2">{open.tr.join(" · ")}</div>}
+            {open.tr.length > 0 && <div className="h2">{trShow(open.tr, 6)}</div>}
             <div className="card" style={{ background: "var(--surface-2)" }}>{open.g}</div>
             {open.ex && <div className="row"><AudioBtn text={open.ex} size={16} slow={false} /><i>“{open.ex}”</i></div>}
             <div className="row wrap">

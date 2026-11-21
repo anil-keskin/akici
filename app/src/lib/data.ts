@@ -85,3 +85,10 @@ export const POS_TR: Record<string, string> = {
   article: "tanımlık", contraction: "kısaltma", postp: "edat",
 };
 export const KIND_TR = { phrasal: "Phrasal verb", idiom: "Deyim", proverb: "Atasözü", phrase: "Kalıp" } as const;
+
+/** Türkçe anlamları tekrarsız göster: ["kendi","öz","kendi, öz, zat"] → "kendi · öz · zat" */
+export function trShow(tr: string[], n = 3): string {
+  const seen = new Set<string>(); const out: string[] = [];
+  for (const t of tr.flatMap((x) => x.split(/\s*[,;·]\s*/))) { const k = t.trim().toLocaleLowerCase("tr"); if (k && !seen.has(k)) { seen.add(k); out.push(t.trim()); } }
+  return out.slice(0, n).join(" · ");
+}

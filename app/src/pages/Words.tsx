@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Search, Plus, Check, BookOpen } from "lucide-react";
 import { Lv, PageHead, Spinner, toast, AudioBtn, Bar } from "../components/ui";
 import { WordSheet } from "../components/WordSheet";
-import { LEVELS, LEVEL_TR, POS_TR, words, type Level, type Word } from "../lib/data";
+import { LEVELS, LEVEL_TR, POS_TR, words, type Level, type Word, trShow } from "../lib/data";
 import { db } from "../lib/db";
 import { useChangeEffect, usePersist } from "../lib/persist";
 import { addCard, cardId } from "../lib/srs";
@@ -100,7 +100,7 @@ export default function Words() {
               <span className="muted tiny" style={{ width: 44, textAlign: "right" }}>{w.id}</span>
               <div className="grow">
                 <div className="row" style={{ gap: 8 }}><b style={{ fontSize: 17 }}>{w.w}</b><span className="ipa small">{w.ipa}</span></div>
-                <div className="muted small" style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{w.tr.slice(0, 3).join(" · ") || w.d[0]?.g}</div>
+                <div className="muted small" style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{trShow(w.tr, 3) || w.d[0]?.g}</div>
               </div>
               <Lv lv={w.lv} />
               <AudioBtn text={w.w} size={16} slow={false} />

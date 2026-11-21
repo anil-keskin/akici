@@ -3,7 +3,7 @@ import { X, Repeat, Layers, Eye, Keyboard, Headphones } from "lucide-react";
 import { AudioBtn, Bar, Empty, Mascot, PageHead, Spinner, confetti } from "../components/ui";
 import { StepView } from "./Session";
 import type { Result } from "../components/Exercises";
-import { phrases, words, type Phrase, type Word } from "../lib/data";
+import { phrases, words, type Phrase, type Word, trShow } from "../lib/data";
 import { db, type CardRow } from "../lib/db";
 import { counts, dueCards, newCards, preview, review, Rating } from "../lib/srs";
 import { wordStep, type Step } from "../lib/lesson";
@@ -110,7 +110,7 @@ function Runner({ mode, onExit }: { mode: Mode; onExit: () => void }) {
     await rate(g as 1 | 2 | 3 | 4);
   };
   const front = it.w ? it.w.w : it.p ? it.p.w : it.row.front || "";
-  const back = it.w ? (it.w.tr.join(" · ") || it.w.d[0]?.g) : it.p ? (it.p.tr.join(" · ") || it.p.g) : it.row.back || "";
+  const back = it.w ? (trShow(it.w.tr, 6) || it.w.d[0]?.g) : it.p ? (trShow(it.p.tr, 6) || it.p.g) : it.row.back || "";
   const pv = preview(it.row);
   return (
     <div className="ex-wrap">

@@ -3,7 +3,7 @@ import { Check, X, Volume2, Mic, Square, ArrowRight, Lightbulb, RotateCcw } from
 import { AudioBtn, Lv, Mascot, useMicConsent } from "./ui";
 import { check, alignWords, scoreOf, norm } from "../lib/grade";
 import { speak, Listener, type Heard } from "../lib/speech";
-import { shuffle, POS_TR, type Word } from "../lib/data";
+import { shuffle, POS_TR, type Word, trShow } from "../lib/data";
 import { getSettings } from "../lib/settings";
 import { sfx } from "../lib/sfx";
 
@@ -49,7 +49,7 @@ export function Intro({ w, example, onDone }: ExProps & { w: Word; example?: [st
       {w.ipa && <div className="ipa" style={{ fontSize: 20 }}>{w.ipa}</div>}
       <AudioBtn text={w.w} big />
       <div className="row wrap" style={{ justifyContent: "center", gap: 6 }}>{w.pos.slice(0, 2).map((p) => <span key={p} className="tag">{POS_TR[p] || p}</span>)}</div>
-      <div className="h2">{w.tr.slice(0, 3).join(" · ") || w.d[0]?.g}</div>
+      <div className="h2">{trShow(w.tr, 3) || w.d[0]?.g}</div>
       {example && (
         <div className="card" style={{ width: "100%", background: "var(--surface-2)" }}>
           <div className="row" style={{ justifyContent: "center" }}><AudioBtn text={example[0]} size={16} slow={false} /><b>{example[0]}</b></div>

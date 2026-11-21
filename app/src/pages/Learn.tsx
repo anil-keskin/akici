@@ -21,9 +21,9 @@ export default function Learn() {
   return (
     <div>
       <PageHead title="Öğren" sub="Bir beceri seç." />
-      <div className="grid g2">
+      <div className="grid g2 learn-grid">
         {ITEMS.map(([to, t, d, I, c]) => (
-          <div key={to} className="card hover col" style={{ gap: 8 }} onClick={() => go(to)}>
+          <div key={to} className="card hover col learn-tile" style={{ gap: 8 }} onClick={() => go(to)}>
             <div className={`ico ${c}`}><I /></div><div className="h3">{t}</div><div className="muted small">{d}</div>
           </div>
         ))}
