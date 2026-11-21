@@ -31,7 +31,7 @@ DIST = ROOT / "app" / "dist"
 OLLAMA = os.environ.get("OLLAMA_HOST_URL", "http://127.0.0.1:11434")
 MAX_AUDIO = 3 * 1024 * 1024
 MAX_JSON = 200 * 1024
-CSP = ("default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' blob:; "
+CSP = ("default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://*.wikimedia.org https://i.ytimg.com; media-src 'self' blob:; "
        "font-src 'self' data:; connect-src 'self' http: https:; frame-src https://www.youtube-nocookie.com; object-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'")
 CUDA_DLL_DIRS = [r"E:\AI\envs\chatterbox\Lib\site-packages\torch\lib", r"E:\AI\envs\img\Lib\site-packages\torch\lib"]
 

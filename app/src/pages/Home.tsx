@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Flame, Repeat, Sparkles, BookOpen, GraduationCap, Headphones, Mic, Theater, MessageCircle, Library, Quote, ShieldCheck, Trophy, Clock, Clapperboard, Check, Lock, Star, Gift } from "lucide-react";
+import { Flame, Repeat, Sparkles, BookOpen, GraduationCap, Headphones, Mic, Theater, MessageCircle, Library, Quote, ShieldCheck, Trophy, Clock, Clapperboard, Compass, Check, Lock, Star, Gift } from "lucide-react";
 import { AudioBtn, Bar, Lv, Mascot, Ring } from "../components/ui";
 import { WordSheet } from "../components/WordSheet";
 import { counts } from "../lib/srs";
@@ -21,6 +21,7 @@ const MODULES = [
   { to: "/dinleme", t: "Dinleme", d: "Dikte, hızlı dinleme, cümle akışı", i: Headphones, c: "sky" },
   { to: "/konusma", t: "Konuşma", d: "Shadowing, telaffuz puanı", i: Mic, c: "coral" },
   { to: "/okuma", t: "Okuma", d: "Hikâyeler ve klasik kitaplar", i: Library, c: "rose" },
+  { to: "/kesfet", t: "Keşfet", d: "Her gün yeni: gündem, tarih, bilim", i: Compass, c: "sky" },
   { to: "/medya", t: "Dizi & Şarkı", d: "Şarkılar, dizi kalıpları, 8.900 diyalog", i: Clapperboard, c: "coral" },
   { to: "/senaryolar", t: "Senaryolar", d: "Restoran, havalimanı, iş görüşmesi…", i: Theater, c: "iris" },
   { to: "/sohbet", t: "AI öğretmen", d: "Sohbet, düzeltme, sınav pratiği", i: MessageCircle, c: "mint" },

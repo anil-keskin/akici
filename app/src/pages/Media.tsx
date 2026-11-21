@@ -1,7 +1,7 @@
 // Dizi & Şarkı: telifsiz şarkılar, dizi kalıpları, günlük diyaloglar ve KULLANICININ KENDİ altyazı/söz dosyaları.
 // Telifli söz/altyazı bizde barındırılmaz; kullanıcı kendi dosyasını yükler, veri sadece bu cihazda (IndexedDB) kalır.
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Music, Clapperboard, MessagesSquare, Upload, Play, Square, Languages, Gamepad2, Plus, Trash2, ArrowLeft, Check, Volume2 } from "lucide-react";
+import { MonitorPlay, Search, Music, Clapperboard, MessagesSquare, Upload, Play, Square, Languages, Gamepad2, Plus, Trash2, ArrowLeft, Check, Volume2 } from "lucide-react";
 import { AudioBtn, Lv, PageHead, Spinner, toast, confetti } from "../components/ui";
 import { findWord, load, shuffle, type Word } from "../lib/data";
 import { db, type MediaRow } from "../lib/db";
@@ -10,7 +10,7 @@ import { speak, stopSpeaking } from "../lib/speech";
 import { addStat } from "../lib/stats";
 import { sfx } from "../lib/sfx";
 import { go } from "../lib/router";
-import { translateTr } from "../lib/ai";
+import { AKICI_AI, aiJson, translateTr } from "../lib/ai";
 
 interface Song { id: string; title: string; lv: string; by: string; lines: [string, string][] }
 interface Expr { en: string; tr: string; note: string; cat: string }
@@ -18,6 +18,7 @@ interface Dlg { lv: string; l: string[] }
 interface Line { en: string; tr?: string; t?: number }
 
 const TABS = [
+  { k: "youtube", label: "YouTube", icon: MonitorPlay },
   { k: "sarki", label: "Şarkılar", icon: Music },
   { k: "kalip", label: "Dizi kalıpları", icon: Clapperboard },
   { k: "diyalog", label: "Diyaloglar", icon: MessagesSquare },
@@ -25,17 +26,92 @@ const TABS = [
 ] as const;
 
 export default function Media({ id, params }: { id?: string; params: URLSearchParams }) {
-  const tab = id || "sarki";
+  const tab = id || "youtube";
   return (
     <div>
       <PageHead title="Dizi & Şarkı" sub="Şarkı sözleri, dizi replikleri ve gerçek diyaloglarla İngilizce: dinle, boşluk doldur, kelime topla." icon={<div className="ico coral"><Clapperboard /></div>} />
       <div className="scroll-x" style={{ marginBottom: 16 }}>
         {TABS.map((t) => <button key={t.k} className={`chip ${tab === t.k ? "on" : ""}`} onClick={() => go(`/medya/${t.k}`)}><t.icon size={15} /> {t.label}</button>)}
       </div>
+      {tab === "youtube" && <YouTube v={params.get("v")} title={params.get("t") || ""} />}
       {tab === "sarki" && <Songs open={params.get("s")} />}
       {tab === "kalip" && <Expressions />}
       {tab === "diyalog" && <Dialogs chunk={Number(params.get("c") || 0)} open={params.get("d")} />}
       {tab === "benim" && <Mine open={params.get("m")} />}
+    </div>
+  );
+}
+
+/* ---------- YouTube: ara, İngilizce altyazıyla izle, kendi altyazınla çift altyazı ---------- */
+const YT_IDEAS = ["English songs with lyrics", "BBC Learning English", "TED-Ed", "Friends scenes English subtitles", "English conversation practice", "Kurzgesagt", "kids stories in English", "6 Minute English"];
+function YouTube({ v, title }: { v: string | null; title: string }) {
+  const [q, setQ] = useState("");
+  const [res, setRes] = useState<{ id: string; title: string; channel: string; thumb: string }[] | null>(null);
+  const [msg, setMsg] = useState("");
+  const [link, setLink] = useState("");
+  const search = async (term: string) => {
+    setQ(term); setMsg(""); setRes(null);
+    try {
+      const r = await fetch(`${AKICI_AI}/yt?q=${encodeURIComponent(term)}`);
+      const d = await r.json();
+      if (!r.ok) { setMsg(d.error || "Arama yapılamadı"); setRes([]); return; }
+      setRes(d.items);
+    } catch { setMsg("Arama yapılamadı (internet?)"); setRes([]); }
+  };
+  if (v) return <YTWatch id={v} title={title} />;
+  const dec = (t: string) => { const e = document.createElement("textarea"); e.innerHTML = t; return e.value; };
+  return (
+    <div className="col" style={{ gap: 12 }}>
+      <form className="row" style={{ gap: 8 }} onSubmit={(e) => { e.preventDefault(); if (q.trim()) search(q.trim()); }}>
+        <input className="input" placeholder="YouTube'da ara (sadece altyazılı videolar)…" value={q} maxLength={100} onChange={(e) => setQ(e.target.value)} />
+        <button className="btn primary" aria-label="Ara"><Search size={18} /></button>
+      </form>
+      <div className="scroll-x">{YT_IDEAS.map((x) => <button key={x} className="chip" onClick={() => search(x)}>{x}</button>)}</div>
+      {msg && <div className="card small" style={{ background: "var(--amber-soft)" }}>{msg}. Bu arada YouTube bağlantısını aşağıya yapıştırarak izleyebilirsin.</div>}
+      <form className="row" style={{ gap: 8 }} onSubmit={(e) => { e.preventDefault(); const id = ytId(link); if (id) go(`/medya/youtube?v=${id}`); else toast("Geçerli bir YouTube bağlantısı değil"); }}>
+        <input className="input" placeholder="…ya da YouTube bağlantısı yapıştır" value={link} onChange={(e) => setLink(e.target.value.trim())} />
+        <button className="btn">İzle</button>
+      </form>
+      {res === null && q && <Spinner label=" Aranıyor…" />}
+      {res && res.length > 0 && <div className="grid g2">
+        {res.map((x) => (
+          <div key={x.id} className="card hover col" style={{ gap: 8, padding: 10 }} onClick={() => go(`/medya/youtube?v=${x.id}&t=${encodeURIComponent(dec(x.title).slice(0, 90))}`)}>
+            <img src={x.thumb} alt="" referrerPolicy="no-referrer" style={{ width: "100%", aspectRatio: "16/9", objectFit: "cover", borderRadius: 12 }} />
+            <b className="small" style={{ display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>{dec(x.title)}</b>
+            <span className="muted tiny">{dec(x.channel)}</span>
+          </div>
+        ))}
+      </div>}
+    </div>
+  );
+}
+
+function YTWatch({ id, title }: { id: string; title: string }) {
+  const [text, setText] = useState("");
+  const attach = async (raw: string) => {
+    const lines = parseSubs(raw);
+    if (lines.length < 2) { toast("Altyazı okunamadı (.srt / .vtt)"); return; }
+    const mid = await db.media.add({ title: (title || "YouTube videosu").slice(0, 100), kind: "subs", lines: lines.slice(0, 3000), video: `https://youtu.be/${id}`, ts: Date.now() });
+    go(`/medya/benim?m=${mid}`);
+  };
+  return (
+    <div className="col" style={{ gap: 12 }}>
+      <button className="btn ghost sm" style={{ alignSelf: "flex-start" }} onClick={() => go("/medya/youtube")}><ArrowLeft size={16} /> Arama</button>
+      {title && <h2 className="h2">{title}</h2>}
+      <div style={{ position: "relative", paddingTop: "56.25%", borderRadius: 16, overflow: "hidden" }}>
+        <iframe title="Video" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", border: 0 }}
+          src={`https://www.youtube-nocookie.com/embed/${id}?rel=0&cc_load_policy=1&cc_lang_pref=en&hl=tr`} allow="encrypted-media; picture-in-picture; fullscreen" allowFullScreen referrerPolicy="strict-origin-when-cross-origin" />
+      </div>
+      <div className="card small col" style={{ gap: 6 }}>
+        <b>Altyazılar</b>
+        <div>• İngilizce altyazı otomatik açılır. Türkçe için videoda ⚙️ → <b>Altyazılar</b> → <b>Otomatik çevir</b> → <b>Türkçe</b>.</div>
+        <div>• <b>Çift altyazı</b> (İngilizce + Türkçe birlikte, kelimeye dokunup anlamına bakma, boşluk doldurma oyunu) için videonun <b>.srt / .vtt</b> altyazısını ekle:</div>
+        <div className="row wrap" style={{ gap: 8 }}>
+          <label className="btn sm primary"><Upload size={15} /> Altyazı dosyası seç<input type="file" accept=".srt,.vtt,.txt" hidden onChange={async (e) => { const f = e.target.files?.[0]; if (f) attach(await f.text()); }} /></label>
+        </div>
+        <textarea className="input" rows={3} placeholder="…ya da altyazı metnini buraya yapıştır" value={text} onChange={(e) => setText(e.target.value.slice(0, 2_000_000))} />
+        {text.trim() && <button className="btn sm" onClick={() => attach(text)}>Yapıştırdığım altyazıyla aç</button>}
+      </div>
     </div>
   );
 }
@@ -66,7 +142,7 @@ function Songs({ open }: { open: string | null }) {
 }
 
 /* ---------- Satır oynatıcı: oku, dinle, boşluk doldurma oyunu, kelimeye dokun ---------- */
-function LinePlayer({ title, sub, lines, back, video, onDelete }: { title: string; sub?: string; lines: Line[]; back: string; video?: string; onDelete?: () => void }) {
+function LinePlayer({ title, sub, lines, back, video, onDelete, onSaveTr }: { title: string; sub?: string; lines: Line[]; back: string; video?: string; onDelete?: () => void; onSaveTr?: (tr: string[]) => void }) {
   const [mode, setMode] = useState<"oku" | "oyun">("oku");
   const [tr, setTr] = useState(false);
   const [playing, setPlaying] = useState<number | null>(null);
@@ -101,6 +177,39 @@ function LinePlayer({ title, sub, lines, back, video, onDelete }: { title: strin
     setCur(k);
   };
   const tap = async (tok: string) => { setWord({ tok }); setWord({ tok, w: await findWord(tok) }); };
+  // YouTube oynatıcıdan anlık süreyi dinle → o anki satırı çift altyazı olarak göster
+  useEffect(() => {
+    if (!yt) return;
+    const onMsg = (e: MessageEvent) => {
+      if (e.origin !== "https://www.youtube-nocookie.com" || typeof e.data !== "string") return;
+      try {
+        const d = JSON.parse(e.data);
+        const t = d?.info?.currentTime;
+        if (typeof t === "number") { let k = -1; lines.forEach((l, i) => { if (l.t !== undefined && l.t <= t + 0.2) k = i; }); setCur(k); }
+      } catch { /* başka mesaj */ }
+    };
+    window.addEventListener("message", onMsg);
+    const hello = window.setInterval(() => frame.current?.contentWindow?.postMessage(JSON.stringify({ event: "listening", id: 1, channel: "widget" }), "https://www.youtube-nocookie.com"), 1000);
+    return () => { window.removeEventListener("message", onMsg); clearInterval(hello); };
+  }, [yt, lines]);
+  const timed = lines.some((l) => l.t !== undefined);
+  const trOf = (i: number) => lines[i]?.tr || lineTr[i];
+  const [bulk, setBulk] = useState("");
+  const translateAll = async () => {
+    const out: string[] = lines.map((l, i) => l.tr || lineTr[i] || "");
+    const todo = out.map((t, i) => (t ? -1 : i)).filter((i) => i >= 0);
+    for (let k = 0; k < todo.length; k += 25) {
+      const idx = todo.slice(k, k + 25);
+      setBulk(`Türkçe altyazı hazırlanıyor… ${Math.min(k + 25, todo.length)}/${todo.length}`);
+      try {
+        const d = await aiJson<{ tr: string[] }>("You translate English subtitles into natural Turkish. Keep the same number of lines and order. Return ONLY JSON.",
+          `Translate each line to Turkish. Return JSON {"tr": [${idx.length} strings]}\n` + idx.map((i, n) => `${n + 1}. ${lines[i].en}`).join("\n"), 1200);
+        idx.forEach((i, n) => { out[i] = String(d.tr?.[n] ?? "").replace(/^\d+\.\s*/, ""); });
+        setLineTr((m) => { const c = { ...m }; idx.forEach((i) => { c[i] = out[i]; }); return c; });
+      } catch (e) { setBulk(`Durdu: ${(e as Error).message}`); return; }
+    }
+    setBulk(""); setTr(true); onSaveTr?.(out); toast("Türkçe altyazı hazır");
+  };
   return (
     <div>
       <div className="row between wrap" style={{ marginBottom: 12 }}>
@@ -115,8 +224,17 @@ function LinePlayer({ title, sub, lines, back, video, onDelete }: { title: strin
       {sub && <div className="muted small" style={{ marginBottom: 12 }}>{sub}</div>}
       {yt && <div style={{ position: "relative", paddingTop: "56.25%", borderRadius: 16, overflow: "hidden", margin: "10px 0 16px" }}>
         <iframe ref={frame} title="Video" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", border: 0 }}
-          src={`https://www.youtube-nocookie.com/embed/${yt}?enablejsapi=1&rel=0`} allow="encrypted-media; picture-in-picture" allowFullScreen referrerPolicy="strict-origin-when-cross-origin" />
+          src={`https://www.youtube-nocookie.com/embed/${yt}?enablejsapi=1&rel=0&cc_load_policy=${timed ? 0 : 1}&cc_lang_pref=en&hl=tr&origin=${encodeURIComponent(location.origin)}`} allow="encrypted-media; picture-in-picture" allowFullScreen referrerPolicy="strict-origin-when-cross-origin" />
       </div>}
+      {(yt || video === "local") && timed && (
+        <div className="card" style={{ margin: "-6px 0 14px", padding: "10px 14px", textAlign: "center", background: "#14122a", color: "#fff", minHeight: 64 }}>
+          {cur >= 0 ? <>
+            <div style={{ fontSize: 18, fontWeight: 650 }}>{lines[cur].en}</div>
+            <div style={{ fontSize: 15, color: "#ffd479", marginTop: 4 }}>{trOf(cur) || <span style={{ opacity: .5 }}>Türkçe için aşağıdan “Türkçe altyazı oluştur”</span>}</div>
+          </> : <div style={{ opacity: .6 }}>Video oynayınca çift altyazı burada görünür</div>}
+        </div>
+      )}
+      {timed && !lines.every((l, i) => trOf(i)) && <button className="btn sm" disabled={!!bulk} onClick={translateAll} style={{ marginBottom: 12 }}><Languages size={14} /> {bulk || "Türkçe altyazı oluştur (çift altyazı)"}</button>}
       {video === "local" && <div style={{ margin: "10px 0 16px" }}>
         {localUrl ? <video ref={vid} src={localUrl} controls onTimeUpdate={onTime} style={{ width: "100%", borderRadius: 16 }} />
           : <label className="btn sm"><Upload size={15} /> Videoyu seç (sadece bu cihazda oynatılır)<input type="file" accept="video/*" hidden onChange={(e) => { const f = e.target.files?.[0]; if (f) setLocalUrl(URL.createObjectURL(f)); }} /></label>}
@@ -351,6 +469,7 @@ function Mine({ open }: { open: string | null }) {
   if (!rows) return <Spinner />;
   const m = open && rows.find((r) => String(r.id) === open);
   if (m) return <LinePlayer title={m.title} sub={m.kind === "subs" ? "Altyazı" : m.kind === "lyrics" ? "Şarkı sözü" : "Metin"} lines={m.lines} video={m.video} back="/medya/benim"
+    onSaveTr={async (tr) => { await db.media.update(m.id!, { lines: m.lines.map((l, i) => ({ ...l, tr: tr[i] || undefined })) }); refresh(); }}
     onDelete={async () => { await db.media.delete(m.id!); toast("Silindi"); go("/medya/benim"); }} />;
   const file = async (f: File) => {
     if (f.size > 2_000_000) { toast("Dosya çok büyük (en fazla 2 MB)"); return; }

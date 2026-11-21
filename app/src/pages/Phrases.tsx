@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { usePersist } from "../lib/persist";
 import { Quote, Plus, Check, Search, Sparkles } from "lucide-react";
 import { AudioBtn, PageHead, Spinner, toast, Sheet } from "../components/ui";
 import { KIND_TR, phrases, type Phrase } from "../lib/data";
@@ -17,10 +18,10 @@ const TIPS: Record<string, string> = {
 
 export default function Phrases() {
   const [all, setAll] = useState<Phrase[] | null>(null);
-  const [k, setK] = useState<(typeof KINDS)[number]>("phrasal");
+  const [k, setK] = usePersist<(typeof KINDS)[number]>("phr.k", "phrasal");
   const [q, setQ] = useState("");
   const [onlyTr, setOnlyTr] = useState(true);
-  const [limit, setLimit] = useState(80);
+  const [pages, setPages] = usePersist<Record<string, number>>("phr.pages", {});
   const [deck, setDeck] = useState<Set<number>>(new Set());
   const [open, setOpen] = useState<Phrase | null>(null);
   useEffect(() => {
@@ -32,7 +33,9 @@ export default function Phrases() {
     const nq = norm(q, false);
     return all.filter((p) => (nq ? p.w.includes(nq) || p.tr.some((t) => norm(t, false).includes(nq)) : p.k === k) && (!onlyTr || p.tr.length || nq));
   }, [all, k, q, onlyTr]);
-  useEffect(() => setLimit(80), [k, q, onlyTr]);
+  const page = q ? 0 : pages[k] || 0;
+  const setPage = (n: number) => { setPages({ ...pages, [k]: n }); window.scrollTo({ top: 0 }); };
+  const PER = 40;
   if (!all) return <Spinner />;
   const add = async (p: Phrase) => { await addCard("phrase", p.id); setDeck(new Set([...deck, p.id])); toast(`“${p.w}” desteye eklendi`); };
   const counts = Object.fromEntries(KINDS.map((x) => [x, all.filter((p) => p.k === x).length]));
@@ -49,10 +52,11 @@ export default function Phrases() {
           <button className={`chip ${onlyTr ? "on" : ""}`} onClick={() => setOnlyTr(!onlyTr)}>Sadece Türkçesi olanlar</button>
         </div>
         {!q && <div className="muted small">💡 {TIPS[k]}</div>}
+        {!q && list.length > PER && <div className="small">📍 Kaldığın yer: {page * PER + 1}–{Math.min(list.length, page * PER + PER)} / {list.length.toLocaleString("tr")}</div>}
       </div>
       <div className="sp" />
       <div className="grid auto">
-        {list.slice(0, limit).map((p) => (
+        {list.slice(page * PER, page * PER + PER).map((p) => (
           <div key={p.id} className="card hover col" style={{ gap: 6 }} onClick={() => setOpen(p)}>
             <div className="row between"><b className="display" style={{ fontSize: 21 }}>{p.w}</b>
               <button className="btn icon sm" aria-label="Desteye ekle" disabled={deck.has(p.id)} onClick={(e) => { e.stopPropagation(); add(p); }}>{deck.has(p.id) ? <Check size={16} color="var(--mint)" /> : <Plus size={16} />}</button>
@@ -62,7 +66,13 @@ export default function Phrases() {
           </div>
         ))}
       </div>
-      {list.length > limit && <button className="btn ghost block" style={{ marginTop: 16 }} onClick={() => setLimit(limit + 120)}>Daha fazla ({list.length - limit})</button>}
+      {list.length > PER && (
+        <div className="row between" style={{ marginTop: 16 }}>
+          <button className="btn sm" disabled={page === 0} onClick={() => setPage(page - 1)}>‹ Önceki {PER}</button>
+          <span className="muted small">{page * PER + 1}–{Math.min(list.length, page * PER + PER)} / {list.length.toLocaleString("tr")}</span>
+          <button className="btn sm" disabled={(page + 1) * PER >= list.length} onClick={() => setPage(page + 1)}>Sonraki {PER} ›</button>
+        </div>
+      )}
       <Sheet open={!!open} onClose={() => setOpen(null)}>
         {open && (
           <div className="col" style={{ gap: 14 }}>

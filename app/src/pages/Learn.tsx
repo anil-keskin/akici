@@ -1,4 +1,4 @@
-import { BookOpen, GraduationCap, Quote, Library, Headphones, Mic, Theater, Repeat, Settings, MessageCircle, Clapperboard } from "lucide-react";
+import { BookOpen, GraduationCap, Quote, Library, Headphones, Mic, Theater, Repeat, Settings, MessageCircle, Clapperboard, Compass } from "lucide-react";
 import { PageHead } from "../components/ui";
 import { go } from "../lib/router";
 
@@ -7,6 +7,7 @@ const ITEMS = [
   ["/gramer", "Gramer", "A1 → C1", GraduationCap, "mint"],
   ["/kaliplar", "Kalıplar", "Phrasal verb, deyim", Quote, "amber"],
   ["/okuma", "Okuma", "8.800+ hikâye, makale, kitap", Library, "rose"],
+  ["/kesfet", "Keşfet", "Gündem, tarih, bilim — her gün yeni", Compass, "sky"],
   ["/medya", "Dizi & Şarkı", "Şarkılar, replikler, diyaloglar", Clapperboard, "coral"],
   ["/dinleme", "Dinleme", "Dikte, akış", Headphones, "sky"],
   ["/konusma", "Konuşma", "Shadowing, telaffuz", Mic, "coral"],

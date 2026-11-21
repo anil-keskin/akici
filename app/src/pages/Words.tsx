@@ -4,6 +4,7 @@ import { Lv, PageHead, Spinner, toast, AudioBtn, Bar } from "../components/ui";
 import { WordSheet } from "../components/WordSheet";
 import { LEVELS, LEVEL_TR, POS_TR, words, type Level, type Word } from "../lib/data";
 import { db } from "../lib/db";
+import { useChangeEffect, usePersist } from "../lib/persist";
 import { addCard, cardId } from "../lib/srs";
 import { getSettings } from "../lib/settings";
 import { norm } from "../lib/grade";
@@ -13,9 +14,9 @@ const POS = ["noun", "verb", "adj", "adv"];
 export default function Words() {
   const [all, setAll] = useState<Word[] | null>(null);
   const [q, setQ] = useState("");
-  const [lv, setLv] = useState<Level | "all">("A1");
-  const [pos, setPos] = useState<string>("");
-  const [page, setPage] = useState(0);
+  const [lv, setLv] = usePersist<Level | "all">("words.lv", "A1");
+  const [pos, setPos] = usePersist<string>("words.pos", "");
+  const [page, setPage] = usePersist<number>("words.page", 0);
   const [lastBatch, setLastBatch] = useState<number[]>([]);
   const [open, setOpen] = useState<Word | null>(null);
   const [deck, setDeck] = useState<Set<number>>(new Set());
@@ -32,7 +33,7 @@ export default function Words() {
       return (lv === "all" || w.lv === lv) && (!pos || w.pos[0] === pos);
     });
   }, [all, q, lv, pos]);
-  useEffect(() => setPage(0), [q, lv, pos]);
+  useChangeEffect(() => setPage(0), [q, lv, pos]);
   if (!all) return <Spinner label=" 20.000 kelime yükleniyor…" />;
   const known = list.filter((w) => deck.has(w.id)).length;
   const addNext = async (n: number) => {

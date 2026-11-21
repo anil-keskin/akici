@@ -163,3 +163,11 @@ export function sentenceAt(text: string, charPos: number): string {
   for (const p of parts) { if (charPos < acc + p.length) return p.trim(); acc += p.length; }
   return parts[parts.length - 1].trim();
 }
+
+/** Yapay zekâdan JSON ister (Keşfet yazıları vb.) */
+export async function aiJson<T>(system: string, user: string, maxTokens = 900): Promise<T> {
+  const t = await raw([{ role: "system", content: system }, { role: "user", content: user }], maxTokens, true);
+  const m = t.replace(/```(?:json)?/g, "").match(/\{[\s\S]*\}/);
+  if (!m) throw new Error("Yapay zekâ beklenmedik cevap verdi, tekrar dene.");
+  return JSON.parse(m[0]) as T;
+}

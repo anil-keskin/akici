@@ -1,7 +1,7 @@
 import { lazy, Suspense, useEffect, type ComponentType } from "react";
 import {
   Home as HomeI, BookOpen, Repeat, GraduationCap, Quote, Headphones, Mic, BookMarked, Theater, MessageCircle,
-  BarChart3, Settings as SetI, LayoutGrid, Library, Clapperboard, ChevronLeft, ChevronRight,
+  BarChart3, Settings as SetI, LayoutGrid, Library, Clapperboard, Compass, ChevronLeft, ChevronRight,
 } from "lucide-react";
 import { back, go, useRoute } from "./lib/router";
 import { Mascot, Spinner, ToastHost, ConfettiHost, toast } from "./components/ui";
@@ -27,6 +27,7 @@ const pages: Record<string, ReturnType<typeof P>> = {
   "/konusma": P(() => import("./pages/Speaking")),
   "/okuma": P(() => import("./pages/Reading")),
   "/medya": P(() => import("./pages/Media")),
+  "/kesfet": P(() => import("./pages/Explore")),
   "/senaryolar": P(() => import("./pages/Scenarios")),
   "/sohbet": P(() => import("./pages/Chat")),
   "/ilerleme": P(() => import("./pages/Progress")),
@@ -46,6 +47,7 @@ const NAV = [
   { to: "/kaliplar", label: "Kalıplar & deyimler", icon: Quote },
   { to: "/okuma", label: "Okuma", icon: Library },
   { to: "/medya", label: "Dizi & Şarkı", icon: Clapperboard },
+  { to: "/kesfet", label: "Keşfet", icon: Compass },
   { sec: "Pratik" },
   { to: "/dinleme", label: "Dinleme", icon: Headphones },
   { to: "/konusma", label: "Konuşma & telaffuz", icon: Mic },
@@ -61,7 +63,7 @@ const TITLES: Record<string, string> = Object.fromEntries([
 ]);
 const TABS = [
   { to: "/", label: "Bugün", icon: HomeI, match: ["/", "/ders", "/tekrar"] },
-  { to: "/ogren", label: "Öğren", icon: LayoutGrid, match: ["/ogren", "/kelimeler", "/gramer", "/kaliplar", "/okuma", "/medya"] },
+  { to: "/ogren", label: "Öğren", icon: LayoutGrid, match: ["/ogren", "/kelimeler", "/gramer", "/kaliplar", "/okuma", "/medya", "/kesfet"] },
   { to: "/konusma", label: "Konuş", icon: Mic, match: ["/konusma", "/dinleme", "/senaryolar"] },
   { to: "/sohbet", label: "Sohbet", icon: MessageCircle, match: ["/sohbet"] },
   { to: "/ilerleme", label: "Sen", icon: BarChart3, match: ["/ilerleme", "/ayarlar", "/test"] },

@@ -6,7 +6,25 @@ const MODELS = ["gemini-flash-latest", "gemini-flash-lite-latest", "gemini-2.5-f
 const MODEL = MODELS[0];
 const CF_MODEL = "@cf/meta/llama-3.3-70b-instruct-fp8-fast";
 const UPSTREAM = "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions";
-const CORS = { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Methods": "POST, OPTIONS", "Access-Control-Allow-Headers": "Content-Type, X-Akici-Device", "Access-Control-Max-Age": "86400" };
+// YouTube araması: resmi YouTube Data API v3 (anahtar gizli ayarda: YOUTUBE_KEY). Sadece altyazılı, aile dostu videolar.
+async function ytSearch(url, req, env) {
+  const YK = env.YOUTUBE_KEY;
+  if (!YK) return json({ error: "YouTube araması henüz kurulmadı (youtube-anahtar.bat)" }, 503);
+  const ip = req.headers.get("CF-Connecting-IP") || "?";
+  const ok = await env.PER_IP.limit({ key: "yt:" + ip });
+  if (!ok.success) return json({ error: "çok hızlı; bir dakika bekle" }, 429);
+  const q = (url.searchParams.get("q") || "").slice(0, 100).trim();
+  if (!q) return json({ items: [] });
+  const api = new URL("https://www.googleapis.com/youtube/v3/search");
+  Object.entries({ part: "snippet", type: "video", maxResults: "20", q, videoCaption: "closedCaption", relevanceLanguage: "en", safeSearch: "strict", videoEmbeddable: "true", key: YK })
+    .forEach(([k, v]) => api.searchParams.set(k, v));
+  const r = await fetch(api, { cf: { cacheTtl: 3600, cacheEverything: true } });
+  if (!r.ok) { const t = (await r.text()).slice(0, 300); return json({ error: r.status === 403 ? "YouTube araması için Google hesabında YouTube Data API açılmalı" : `YouTube hatası ${r.status}`, detail: t.replace(/AIza[\w-]+/g, "***") }, 502); }
+  const d = await r.json();
+  return json({ items: (d.items || []).map((x) => ({ id: x.id?.videoId, title: x.snippet?.title, channel: x.snippet?.channelTitle, thumb: x.snippet?.thumbnails?.medium?.url })).filter((x) => x.id) });
+}
+
+const CORS = { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Methods": "GET, POST, OPTIONS", "Access-Control-Allow-Headers": "Content-Type, X-Akici-Device", "Access-Control-Max-Age": "86400" };
 
 const json = (obj, status = 200) => new Response(JSON.stringify(obj), { status, headers: { ...CORS, "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store" } });
 
@@ -15,6 +33,7 @@ export default {
     const url = new URL(req.url);
     if (req.method === "OPTIONS") return new Response(null, { status: 204, headers: CORS });
     if (url.pathname === "/health") return json({ ok: true, model: MODEL });
+    if (req.method === "GET" && url.pathname === "/yt") return ytSearch(url, req, env);
     if (req.method !== "POST" || url.pathname !== "/chat") return json({ error: "bulunamadı" }, 404);
 
     const ip = req.headers.get("CF-Connecting-IP") || "?";
