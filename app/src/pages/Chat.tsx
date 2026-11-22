@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState } from "react";
-import { Send, Mic, Square, Volume2, VolumeX, Trash2, Settings2, Loader2, Phone, PhoneOff } from "lucide-react";
+import { Send, Mic, Square, Volume2, VolumeX, Trash2, Settings2, Loader2, Phone, PhoneOff, Languages } from "lucide-react";
 import { PageHead, useMicConsent } from "../components/ui";
 import { Avatar } from "../components/Avatar";
-import { MODES, PERSONAS, chat, chatTurn, type Mode, type Msg } from "../lib/ai";
-import { db, kvGet } from "../lib/db";
+import { MODES, PERSONAS, chat, chatTurn, translateTr, type Mode, type Msg } from "../lib/ai";
+import { db, kvGet, kvSet } from "../lib/db";
 import { speak, stopSpeaking, Listener, health } from "../lib/speech";
 import { useSettings } from "../lib/settings";
 import { addStat } from "../lib/stats";
@@ -18,7 +18,7 @@ const STARTERS: Record<Mode, string[]> = {
   exam: ["Let's start the IELTS speaking test."],
   vocab: ["Bana 'improve, achieve, ability' kelimelerini öğret.", "Seyahatle ilgili 5 önemli kelime öğret."],
 };
-interface Line { role: "user" | "assistant"; content: string; fix?: string; why?: string }
+interface Line { role: "user" | "assistant"; content: string; fix?: string; why?: string; tr?: string }
 
 export default function Chat({ params }: { params: URLSearchParams }) {
   const s = useSettings();
@@ -40,6 +40,16 @@ export default function Chat({ params }: { params: URLSearchParams }) {
   const chatId = useRef<number | undefined>(undefined);
   const callRef = useRef(false);
   const [heard, setHeard] = useState("");
+  const [autoTr, setAutoTr] = useState(false);
+  const misses = useRef(0);
+  useEffect(() => { kvGet("chat.autoTr", false).then(setAutoTr); }, []);
+  /** Loki'nin mesajının Türkçesi: aç/kapat; yoksa çevir */
+  const setTr = (i: number, tr?: string) => setLines((ls) => ls.map((l, j) => (j === i ? { ...l, tr } : l)));
+  const trLine = async (i: number, text: string, toggle = true) => {
+    if (toggle && lines[i]?.tr) { setTr(i, undefined); return; }
+    setTr(i, "Çevriliyor…");
+    try { setTr(i, await translateTr(text)); } catch (e) { setTr(i, `Çevrilemedi: ${(e as Error).message}`); }
+  };
   const persona = PERSONAS[mode === "roleplay" && sc ? (["leo", "emma"][sc.id.length % 2]) : MODES[mode].persona];
 
   useEffect(() => { kvGet("level", "A2").then(setLv); }, []);
@@ -90,6 +100,7 @@ export default function Chat({ params }: { params: URLSearchParams }) {
       }
       const all = [...next, line];
       setLines(all);
+      if (autoTr) trLine(all.length - 1, line.content, false);
       addStat({ xp: 3 });
       const row = { mode, title: t.slice(0, 60), messages: all.map((l) => ({ role: l.role, content: l.content })), ts: Date.now() };
       if (chatId.current) await db.chats.put({ ...row, id: chatId.current }); else chatId.current = await db.chats.add(row);
@@ -116,8 +127,11 @@ export default function Chat({ params }: { params: URLSearchParams }) {
     setRec(false);
     const h = await cur.stop().catch((e) => { setErr((e as Error).message); return null; });
     setHeard("");
-    if (h?.text) send(h.text);
-    else if (callRef.current) setErr("Seni duyamadım. Mikrofona tekrar bas.");
+    if (h?.text) { misses.current = 0; send(h.text); return; }
+    // Sesli sohbette sessiz kaldıysan acele etme: dinlemeye devam et (yaklaşık 1,5 dk), sonra bekle
+    if (callRef.current && h && misses.current < 2) { misses.current++; startListening(); return; }
+    misses.current = 0;
+    if (callRef.current) setErr("Seni bekliyorum. Hazır olunca mikrofona bas.");
   }
   const toggleCall = async () => {
     if (call) { callRef.current = false; setCall(false); stopSpeaking(); lis.current?.cancel(); lis.current = null; setRec(false); return; }
@@ -131,7 +145,8 @@ export default function Chat({ params }: { params: URLSearchParams }) {
     <div className="col" style={{ gap: 14, maxWidth: 880, margin: "0 auto", minHeight: "calc(100vh - 140px)" }}>
       {consentUi}
       <PageHead title="AI öğretmen" sub={sc ? `Senaryo: ${sc.title}` : "Hatalarını düzeltir, Türkçe açıklar, seninle sesli konuşur."}
-        right={<div className="row"><button className="btn icon" title="Sesli yanıt" onClick={() => { setTts(!tts); stopSpeaking(); }}>{tts ? <Volume2 size={18} /> : <VolumeX size={18} />}</button>
+        right={<div className="row"><button className={`btn icon ${autoTr ? "primary" : ""}`} title="Türkçesini hep göster" aria-pressed={autoTr} onClick={() => { const n = !autoTr; setAutoTr(n); kvSet("chat.autoTr", n); }}><Languages size={18} /></button>
+          <button className="btn icon" title="Sesli yanıt" onClick={() => { setTts(!tts); stopSpeaking(); }}>{tts ? <Volume2 size={18} /> : <VolumeX size={18} />}</button>
           <button className="btn icon" title="Temizle" onClick={() => { setLines([]); chatId.current = undefined; }}><Trash2 size={18} /></button>
           <button className="btn icon" title="Ayarlar" onClick={() => go("/ayarlar")}><Settings2 size={18} /></button></div>} />
       <div className="scroll-x">
@@ -180,6 +195,8 @@ export default function Chat({ params }: { params: URLSearchParams }) {
             <Avatar p={persona} size={34} />
             <div className="msg ai">{m.content}
               <button className="btn sm ghost" style={{ marginLeft: 8, padding: "2px 8px" }} aria-label="Dinle" onClick={() => say(m.content)}><Volume2 size={13} /></button>
+              <button className="btn sm ghost" style={{ marginLeft: 4, padding: "2px 8px" }} aria-label="Türkçesi" title="Türkçesi" onClick={() => trLine(i, m.content)}><Languages size={13} /> TR</button>
+              {m.tr && <div className="small" style={{ marginTop: 6, paddingTop: 6, borderTop: "1px dashed var(--line, #ccc)", fontWeight: 600, opacity: 0.9 }}>🇹🇷 {m.tr}</div>}
             </div>
           </div>
         ))}

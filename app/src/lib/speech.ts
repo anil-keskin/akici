@@ -194,7 +194,9 @@ export class Listener {
 
   private ac: AudioContext | null = null;
   private iv: number | undefined;
-  /** Konuşma başlayıp 1,5 sn susunca (ya da 8 sn hiç ses gelmezse) otomatik bitir */
+  private spoke = false;
+  private watched = false;
+  /** Konuşma başlayıp 2,5 sn susunca (ya da 30 sn hiç konuşma gelmezse) otomatik bitir. Kısa tık/gürültü konuşma sayılmaz. */
   private watchSilence(onAutoStop?: () => void) {
     if (!this.stream || !onAutoStop) return;
     try {
@@ -202,14 +204,15 @@ export class Listener {
       const an = ac.createAnalyser(); an.fftSize = 1024;
       ac.createMediaStreamSource(this.stream).connect(an);
       const buf = new Float32Array(an.fftSize);
-      let spoke = false, quietSince = Date.now(); const start = Date.now();
-      this.ac = ac;
+      let loud = 0, quietSince = Date.now(); const start = Date.now();
+      this.ac = ac; this.watched = true; this.spoke = false;
       this.iv = window.setInterval(() => {
         an.getFloatTimeDomainData(buf);
         let sum = 0; for (const v of buf) sum += v * v;
         const rms = Math.sqrt(sum / buf.length);
-        if (rms > 0.02) { spoke = true; quietSince = Date.now(); this.onPartial?.("🎙️ …"); }
-        if ((spoke && Date.now() - quietSince > 1500) || (!spoke && Date.now() - start > 8000)) { this.stopWatch(); onAutoStop(); }
+        if (rms > 0.02) { loud++; quietSince = Date.now(); if (loud >= 3 && !this.spoke) { this.spoke = true; this.onPartial?.("🎙️ …"); } }
+        else if (Date.now() - quietSince > 400) loud = 0;
+        if ((this.spoke && Date.now() - quietSince > 2500) || (!this.spoke && Date.now() - start > 30000)) { this.stopWatch(); onAutoStop(); }
       }, 100);
     } catch { /* ses analizi yok: süre sınırı yeter */ }
   }
@@ -237,7 +240,8 @@ export class Listener {
     addStat({ speakSec: Math.round((Date.now() - this.t0) / 1000) });
     this.stopWatch();
     if (this.engine === "cloud") {
-      if (blob.size < 2000) return { text: "", audioUrl, engine: "cloud" };
+      // Hiç konuşulmadıysa gönderme: Whisper sessizlikte "Thank you." gibi şeyler uydurur
+      if (blob.size < 2000 || (this.watched && !this.spoke)) return { text: "", audioUrl, engine: "cloud" };
       const { AKICI_AI } = await import("./ai");
       let dev = "anon"; try { dev = localStorage.getItem("akici-device") || "anon"; } catch { /* */ }
       const r = await fetch(`${AKICI_AI}/stt`, { method: "POST", headers: { "Content-Type": (blob.type || "audio/webm").split(";")[0], "X-Akici-Device": dev }, body: blob });
