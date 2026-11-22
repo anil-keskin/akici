@@ -135,7 +135,7 @@ export default function Chat({ params }: { params: URLSearchParams }) {
     // Sesli sohbette sessiz kaldıysan acele etme: dinlemeye devam et (yaklaşık 1,5 dk), sonra bekle
     if (callRef.current && h && misses.current < 2) { misses.current++; startListening(); return; }
     misses.current = 0;
-    setErr(callRef.current ? "Seni bekliyorum. Hazır olunca mikrofona bas." : h ? "Ses gelmedi. Mikrofona biraz daha yakın ve net konuş." : "");
+    if (callRef.current) setErr("Seni bekliyorum. Hazır olunca mikrofona bas."); else if (h) setErr("Ses gelmedi. Mikrofona biraz daha yakın ve net konuş.");
   }
   const toggleCall = async () => {
     if (call) { callRef.current = false; setCall(false); stopSpeaking(); lis.current?.cancel(); lis.current = null; setRec(false); return; }

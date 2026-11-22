@@ -18,3 +18,8 @@ Akıcı'nın içeriği açık lisanslı kaynaklardan üretildi. Her kaynağın l
 
 **Not:** DailyDialog ticari kullanıma izin vermez. Uygulama ücretli olursa bu bölüm kaldırılmalı.
 Telifli şarkı sözü ve dizi altyazısı uygulamada barındırılmaz; kullanıcı kendi dosyasını yükler ve dosya sadece kendi cihazında kalır.
+
+## Podcast ve şarkı (22 Kas)
+- Podcast arama: Apple iTunes Search API (ücretsiz, anahtarsız) · yedek: fyyd.de açık podcast dizini.
+- Bölümler: her podcast'in kendi herkese açık RSS akışı. Döküm: Groq Whisper large-v3-turbo (kişisel çalışma için, önbellekli).
+- Şarkı sözü: lrclib.net (açık, zaman damgalı söz veritabanı). Video: kullanıcının seçtiği YouTube bağlantısı (gömülü oynatıcı).

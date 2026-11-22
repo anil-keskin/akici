@@ -127,7 +127,7 @@ export function browserSTT(): boolean { return !!((window as any).SpeechRecognit
 export async function micAvailable() { return !!navigator.mediaDevices?.getUserMedia; }
 
 /** Sesi Loki sunucusu üzerinden Groq Whisper'a gönderip yazıya çevirir (2 deneme) */
-async function cloudStt(blob: Blob): Promise<string> {
+export async function cloudStt(blob: Blob): Promise<string> {
   const { AKICI_AI } = await import("./ai");
   let dev = "anon"; try { dev = localStorage.getItem("akici-device") || "anon"; } catch { /* */ }
   let last: Error = new Error("Ses tanınamadı");

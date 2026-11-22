@@ -19,7 +19,7 @@ export interface ReviewLog { id?: number; cardId: string; rating: number; ts: nu
 export interface DayStat { day: string; xp: number; minutes: number; reviews: number; learned: number; speakSec: number; correct: number; total: number }
 export interface KV { k: string; v: unknown }
 export interface ChatRow { id?: number; mode: string; title: string; messages: { role: "user" | "assistant" | "system"; content: string }[]; ts: number }
-export interface MediaRow { id?: number; title: string; kind: "subs" | "lyrics" | "text"; lines: { t?: number; en: string; tr?: string }[]; video?: string; ts: number }
+export interface MediaRow { id?: number; title: string; kind: "subs" | "lyrics" | "text"; lines: { t?: number; en: string; tr?: string }[]; video?: string; audio?: string; sub?: string; src?: "podcast" | "song"; ts: number }
 export interface Progress { id: string; kind: "grammar" | "book" | "scenario" | "pairs"; done: number; score: number; pos?: number; ts: number }
 
 class AkiciDB extends Dexie {

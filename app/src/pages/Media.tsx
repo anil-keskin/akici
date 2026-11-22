@@ -12,6 +12,9 @@ import { sfx } from "../lib/sfx";
 import { go } from "../lib/router";
 import { usePersist } from "../lib/persist";
 import { AKICI_AI, aiJson, translateTr } from "../lib/ai";
+import { Podcasts, SongSearch } from "./Podcast";
+import { LiveCaption, canLiveCaption, liveSaveToast, type CapLine } from "../components/LiveCaption";
+import { Headphones } from "lucide-react";
 
 interface Song { id: string; title: string; lv: string; by: string; lines: [string, string][] }
 interface Expr { en: string; tr: string; note: string; cat: string }
@@ -20,6 +23,7 @@ interface Line { en: string; tr?: string; t?: number }
 
 const TABS = [
   { k: "youtube", label: "YouTube", icon: MonitorPlay },
+  { k: "podcast", label: "Podcast", icon: Headphones },
   { k: "sarki", label: "Şarkılar", icon: Music },
   { k: "kalip", label: "Dizi kalıpları", icon: Clapperboard },
   { k: "diyalog", label: "Diyaloglar", icon: MessagesSquare },
@@ -35,6 +39,7 @@ export default function Media({ id, params }: { id?: string; params: URLSearchPa
         {TABS.map((t) => <button key={t.k} className={`chip ${tab === t.k ? "on" : ""}`} onClick={() => go(`/medya/${t.k}`)}><t.icon size={15} /> {t.label}</button>)}
       </div>
       {tab === "youtube" && <YouTube v={params.get("v")} title={params.get("t") || ""} />}
+      {tab === "podcast" && <Podcasts feed={params.get("f")} title={params.get("t") || ""} />}
       {tab === "sarki" && <Songs open={params.get("s")} />}
       {tab === "kalip" && <Expressions />}
       {tab === "diyalog" && <Dialogs chunk={Number(params.get("c") || 0)} open={params.get("d")} />}
@@ -107,6 +112,22 @@ function YouTube({ v, title }: { v: string | null; title: string }) {
 
 function YTWatch({ id, title }: { id: string; title: string }) {
   const [text, setText] = useState("");
+  const frame = useRef<HTMLIFrameElement>(null);
+  const tNow = useRef(0);
+  // Oynatıcının anlık süresini dinle (canlı dökümde satırlara zaman damgası için)
+  useEffect(() => {
+    const onMsg = (e: MessageEvent) => {
+      if (e.origin !== "https://www.youtube-nocookie.com" || typeof e.data !== "string") return;
+      try { const t = JSON.parse(e.data)?.info?.currentTime; if (typeof t === "number") tNow.current = t; } catch { /* */ }
+    };
+    window.addEventListener("message", onMsg);
+    const hello = window.setInterval(() => frame.current?.contentWindow?.postMessage(JSON.stringify({ event: "listening", id: 1, channel: "widget" }), "https://www.youtube-nocookie.com"), 1000);
+    return () => { window.removeEventListener("message", onMsg); clearInterval(hello); };
+  }, []);
+  const saveLive = async (lines: CapLine[]) => {
+    const mid = await db.media.add({ title: (title || "YouTube videosu").slice(0, 100), kind: "subs", lines: lines.map((l) => ({ t: l.t, en: l.en, tr: l.tr })), video: `https://youtu.be/${id}`, ts: Date.now() });
+    liveSaveToast(); go(`/medya/benim?m=${mid}`);
+  };
   const attach = async (raw: string) => {
     const lines = parseSubs(raw);
     if (lines.length < 2) { toast("Altyazı okunamadı (.srt / .vtt)"); return; }
@@ -118,9 +139,10 @@ function YTWatch({ id, title }: { id: string; title: string }) {
       <button className="btn ghost sm" style={{ alignSelf: "flex-start" }} onClick={() => go("/medya/youtube")}><ArrowLeft size={16} /> Arama</button>
       {title && <h2 className="h2">{title}</h2>}
       <div style={{ position: "relative", paddingTop: "56.25%", borderRadius: 16, overflow: "hidden" }}>
-        <iframe title="Video" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", border: 0 }}
-          src={`https://www.youtube-nocookie.com/embed/${id}?rel=0&cc_load_policy=1&cc_lang_pref=en&hl=tr`} allow="encrypted-media; picture-in-picture; fullscreen" allowFullScreen referrerPolicy="strict-origin-when-cross-origin" />
+        <iframe ref={frame} title="Video" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", border: 0 }}
+          src={`https://www.youtube-nocookie.com/embed/${id}?enablejsapi=1&rel=0&cc_load_policy=1&cc_lang_pref=en&hl=tr&origin=${encodeURIComponent(location.origin)}`} allow="encrypted-media; picture-in-picture; fullscreen" allowFullScreen referrerPolicy="strict-origin-when-cross-origin" />
       </div>
+      {canLiveCaption() && <LiveCaption now={() => tNow.current} onSave={saveLive} />}
       <div className="card small col" style={{ gap: 6 }}>
         <b>Altyazılar</b>
         <div>• İngilizce altyazı otomatik açılır. Türkçe için videoda ⚙️ → <b>Altyazılar</b> → <b>Otomatik çevir</b> → <b>Türkçe</b>.</div>
@@ -143,6 +165,9 @@ function Songs({ open }: { open: string | null }) {
   const s = open && songs.find((x) => x.id === open);
   if (s) return <LinePlayer title={s.title} sub={s.by} lines={s.lines.map(([en, tr]) => ({ en, tr }))} back="/medya/sarki" />;
   return (
+    <>
+    <SongSearch />
+    <div className="muted tiny" style={{ marginBottom: 8 }}>UYGULAMADAKİ ÖĞRETİCİ ŞARKILAR</div>
     <div className="grid g3">
       {songs.map((x) => (
         <div key={x.id} className="card hover col" style={{ gap: 8 }} onClick={() => go(`/medya/sarki?s=${x.id}`)}>
@@ -152,16 +177,24 @@ function Songs({ open }: { open: string | null }) {
         </div>
       ))}
       <div className="card col" style={{ gap: 8, borderStyle: "dashed" }}>
-        <b>Sevdiğin şarkı burada yok mu?</b>
-        <div className="small sub">Popüler şarkıların sözleri telifli olduğu için uygulamaya koyamıyoruz. Sözleri kendin yapıştır, aynı oyunlarla çalış.</div>
+        <b>Aradığın şarkı bulunamadı mı?</b>
+        <div className="small sub">Sözleri kendin yapıştır, aynı oyunlarla çalış.</div>
         <button className="btn sm primary" onClick={() => go("/medya/benim")}><Upload size={15} /> Söz / altyazı ekle</button>
       </div>
     </div>
+    </>
   );
 }
 
 /* ---------- Satır oynatıcı: oku, dinle, boşluk doldurma oyunu, kelimeye dokun ---------- */
-function LinePlayer({ title, sub, lines, back, video, onDelete, onSaveTr }: { title: string; sub?: string; lines: Line[]; back: string; video?: string; onDelete?: () => void; onSaveTr?: (tr: string[]) => void }) {
+function LinePlayer({ title, sub, lines, back, video, audio, onDelete, onSaveTr, onVideo }: { title: string; sub?: string; lines: Line[]; back: string; video?: string; audio?: string; onDelete?: () => void; onSaveTr?: (tr: string[]) => void; onVideo?: (url: string) => void }) {
+  const aud = useRef<HTMLAudioElement>(null);
+  const [offset, setOffset] = useState(0); // söz/altyazı ile video arasındaki kayma (sn)
+  const [follow, setFollow] = useState(true);
+  const [vlink, setVlink] = useState("");
+  const lineRefs = useRef<(HTMLDivElement | null)[]>([]);
+  // http (güvensiz) podcast adresleri uygulamada çalmaz → Loki aracısı üzerinden; https olanı önce doğrudan dene
+  const [audioSrc, setAudioSrc] = useState(() => (!audio ? "" : audio.startsWith("https://") ? audio : `${AKICI_AI}/pod/audio?url=${encodeURIComponent(audio)}`));
   const [mode, setMode] = useState<"oku" | "oyun">("oku");
   const [tr, setTr] = useState(false);
   const [playing, setPlaying] = useState<number | null>(null);
@@ -183,6 +216,7 @@ function LinePlayer({ title, sub, lines, back, video, onDelete, onSaveTr }: { ti
     if (t === undefined) return;
     if (yt && frame.current) frame.current.contentWindow?.postMessage(JSON.stringify({ event: "command", func: "seekTo", args: [t, true] }), "*");
     if (vid.current) { vid.current.currentTime = t; vid.current.play(); }
+    if (aud.current) { aud.current.currentTime = Math.max(0, t - offset); aud.current.play().catch(() => null); }
   };
   const playAll = async () => {
     if (playing !== null) { stop.current = true; stopSpeaking(); setPlaying(null); return; }
@@ -191,10 +225,14 @@ function LinePlayer({ title, sub, lines, back, video, onDelete, onSaveTr }: { ti
     setPlaying(null);
   };
   const onTime = () => {
-    const t = vid.current?.currentTime ?? 0;
-    let k = -1; lines.forEach((l, i) => { if (l.t !== undefined && l.t <= t) k = i; });
+    const t = (aud.current?.currentTime ?? vid.current?.currentTime ?? 0) + offset;
+    let k = -1; lines.forEach((l, i) => { if (l.t !== undefined && l.t <= t + 0.15) k = i; });
     setCur(k);
   };
+  // Çalan satırı ekranda tut
+  useEffect(() => {
+    if (follow && cur >= 0 && mode === "oku") lineRefs.current[cur]?.scrollIntoView({ behavior: "smooth", block: "center" });
+  }, [cur, follow]); // eslint-disable-line react-hooks/exhaustive-deps
   const tap = async (tok: string) => { setWord({ tok }); setWord({ tok, w: await findWord(tok) }); };
   // YouTube oynatıcıdan anlık süreyi dinle → o anki satırı çift altyazı olarak göster
   useEffect(() => {
@@ -204,14 +242,16 @@ function LinePlayer({ title, sub, lines, back, video, onDelete, onSaveTr }: { ti
       try {
         const d = JSON.parse(e.data);
         const t = d?.info?.currentTime;
-        if (typeof t === "number") { let k = -1; lines.forEach((l, i) => { if (l.t !== undefined && l.t <= t + 0.2) k = i; }); setCur(k); }
+        if (typeof t === "number") { let k = -1; lines.forEach((l, i) => { if (l.t !== undefined && l.t <= t + offRef.current + 0.2) k = i; }); setCur(k); }
       } catch { /* başka mesaj */ }
     };
     window.addEventListener("message", onMsg);
     const hello = window.setInterval(() => frame.current?.contentWindow?.postMessage(JSON.stringify({ event: "listening", id: 1, channel: "widget" }), "https://www.youtube-nocookie.com"), 1000);
     return () => { window.removeEventListener("message", onMsg); clearInterval(hello); };
   }, [yt, lines]);
+  const offRef = useRef(0); offRef.current = offset;
   const timed = lines.some((l) => l.t !== undefined);
+  const media = !!(yt || video === "local" || audio);
   const trOf = (i: number) => lines[i]?.tr || lineTr[i];
   const [bulk, setBulk] = useState("");
   const translateAll = async () => {
@@ -226,6 +266,12 @@ function LinePlayer({ title, sub, lines, back, video, onDelete, onSaveTr }: { ti
         idx.forEach((i, n) => { out[i] = String(d.tr?.[n] ?? "").replace(/^\d+\.\s*/, ""); });
         setLineTr((m) => { const c = { ...m }; idx.forEach((i) => { c[i] = out[i]; }); return c; });
       } catch (e) { setBulk(`Durdu: ${(e as Error).message}`); return; }
+    }
+    // Toplu çeviride atlanan satırları tek tek tamamla
+    const miss = out.map((t, i) => (t.trim() ? -1 : i)).filter((i) => i >= 0).slice(0, 40);
+    for (const [n, i] of miss.entries()) {
+      setBulk(`Eksikler tamamlanıyor… ${n + 1}/${miss.length}`);
+      try { out[i] = await translateTr(lines[i].en); setLineTr((m) => ({ ...m, [i]: out[i] })); } catch { /* sonra tekrar */ }
     }
     setBulk(""); setTr(true); onSaveTr?.(out); toast("Türkçe altyazı hazır");
   };
@@ -245,12 +291,32 @@ function LinePlayer({ title, sub, lines, back, video, onDelete, onSaveTr }: { ti
         <iframe ref={frame} title="Video" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", border: 0 }}
           src={`https://www.youtube-nocookie.com/embed/${yt}?enablejsapi=1&rel=0&cc_load_policy=${timed ? 0 : 1}&cc_lang_pref=en&hl=tr&origin=${encodeURIComponent(location.origin)}`} allow="encrypted-media; picture-in-picture" allowFullScreen referrerPolicy="strict-origin-when-cross-origin" />
       </div>}
-      {(yt || video === "local") && timed && (
-        <div className="card" style={{ margin: "-6px 0 14px", padding: "10px 14px", textAlign: "center", background: "#14122a", color: "#fff", minHeight: 64 }}>
+      {!media && timed && onVideo && (
+        <div className="card col" style={{ gap: 8, margin: "6px 0 14px" }}>
+          <b className="small">🎵 Şarkıyı çal, sözler akarak gelsin</b>
+          <div className="row wrap" style={{ gap: 6 }}>
+            <a className="btn sm primary" href={`https://www.youtube.com/results?search_query=${encodeURIComponent(title + " lyrics")}`} target="_blank" rel="noreferrer">YouTube'da bul</a>
+            <input className="input" style={{ flex: "1 1 220px" }} placeholder="Bulduğun videonun bağlantısını yapıştır" value={vlink} onChange={(e) => setVlink(e.target.value.trim())} />
+            <button className="btn sm" disabled={!ytId(vlink)} onClick={() => onVideo(vlink)}>Ekle</button>
+          </div>
+        </div>
+      )}
+      {audio && <div style={{ position: "sticky", top: 64, zIndex: 5, background: "var(--bg)", padding: "6px 0" }}>
+        <audio ref={aud} src={audioSrc} controls preload="metadata" onTimeUpdate={onTime} style={{ width: "100%" }}
+          onError={() => { if (audio && !audioSrc.startsWith(AKICI_AI)) setAudioSrc(`${AKICI_AI}/pod/audio?url=${encodeURIComponent(audio)}`); }} />
+      </div>}
+      {media && timed && (
+        <div className="card" style={{ margin: "-6px 0 14px", padding: "10px 14px", textAlign: "center", background: "#14122a", color: "#fff", minHeight: 64, maxHeight: "34vh", overflowY: "auto", position: audio ? "sticky" : undefined, top: audio ? 122 : undefined, zIndex: 4 }}>
           {cur >= 0 ? <>
-            <div style={{ fontSize: 18, fontWeight: 650 }}>{lines[cur].en}</div>
-            <div style={{ fontSize: 15, color: "#ffd479", marginTop: 4 }}>{trOf(cur) || <span style={{ opacity: .5 }}>Türkçe için aşağıdan “Türkçe altyazı oluştur”</span>}</div>
-          </> : <div style={{ opacity: .6 }}>Video oynayınca çift altyazı burada görünür</div>}
+            <div style={{ fontSize: 17, fontWeight: 650, lineHeight: 1.35 }}>{lines[cur].en}</div>
+            <div style={{ fontSize: 14.5, color: "#ffd479", marginTop: 4, lineHeight: 1.35 }}>{trOf(cur) || <span style={{ opacity: .5 }}>Türkçe için aşağıdan “Türkçe altyazı oluştur”</span>}</div>
+          </> : <div style={{ opacity: .6 }}>{audio ? "Oynatınca çift altyazı burada görünür" : "Video oynayınca çift altyazı burada görünür"}</div>}
+          <div className="row" style={{ justifyContent: "center", gap: 6, marginTop: 6, opacity: .8 }}>
+            <button className="btn sm ghost" style={{ color: "#fff", padding: "2px 8px" }} onClick={() => setOffset((o) => Math.round((o - 0.5) * 10) / 10)} title="Yazılar erken geliyorsa">−0,5 sn</button>
+            <span className="tiny">kayma {offset > 0 ? "+" : ""}{offset} sn</span>
+            <button className="btn sm ghost" style={{ color: "#fff", padding: "2px 8px" }} onClick={() => setOffset((o) => Math.round((o + 0.5) * 10) / 10)} title="Yazılar geç geliyorsa">+0,5 sn</button>
+            <label className="tiny row" style={{ gap: 4 }}><input type="checkbox" checked={follow} onChange={(e) => setFollow(e.target.checked)} /> takip et</label>
+          </div>
         </div>
       )}
       {timed && !lines.every((l, i) => trOf(i)) && <button className="btn sm" disabled={!!bulk} onClick={translateAll} style={{ marginBottom: 12 }}><Languages size={14} /> {bulk || "Türkçe altyazı oluştur (çift altyazı)"}</button>}
@@ -266,14 +332,14 @@ function LinePlayer({ title, sub, lines, back, video, onDelete, onSaveTr }: { ti
           </div>
           <div className="col" style={{ gap: 6 }}>
             {lines.map((l, i) => (
-              <div key={i} className="card" style={{ padding: "10px 14px", borderColor: playing === i || cur === i ? "var(--iris)" : undefined }}>
+              <div key={i} ref={(el) => { lineRefs.current[i] = el; }} className="card" style={{ padding: "10px 14px", borderColor: playing === i || cur === i ? "var(--iris)" : undefined, background: cur === i ? "var(--iris-soft)" : undefined }}>
                 <div className="row between" style={{ alignItems: "flex-start" }}>
                   <div style={{ fontSize: 17, lineHeight: 1.6 }}>
                     {l.en.split(/(\s+|[.,!?;:"“”()—-]+)/).map((t, k) => /^[A-Za-z’']+$/.test(t)
                       ? <span key={k} className={`tok ${word?.tok === t ? "sel" : ""}`} onClick={() => tap(t)}>{t}</span> : <span key={k}>{t}</span>)}
                   </div>
                   <div className="row" style={{ gap: 4 }}>
-                    {l.t !== undefined && (yt || localUrl) && <button className="btn icon sm" aria-label="Videoda bu satıra git" onClick={() => seek(l.t)}><Play size={14} /></button>}
+                    {l.t !== undefined && (yt || localUrl || audio) && <button className="btn icon sm" aria-label="Videoda bu satıra git" onClick={() => seek(l.t)}><Play size={14} /></button>}
                     {!l.tr && <button className="btn icon sm" aria-label="Satırı çevir" onClick={() => trLine(i)}><Languages size={14} /></button>}
                     <AudioBtn text={l.en} size={16} />
                   </div>
@@ -487,7 +553,9 @@ function Mine({ open }: { open: string | null }) {
   useEffect(() => { refresh(); }, []);
   if (!rows) return <Spinner />;
   const m = open && rows.find((r) => String(r.id) === open);
-  if (m) return <LinePlayer title={m.title} sub={m.kind === "subs" ? "Altyazı" : m.kind === "lyrics" ? "Şarkı sözü" : "Metin"} lines={m.lines} video={m.video} back="/medya/benim"
+  if (m) return <LinePlayer key={m.id + (m.video || "")} title={m.title} sub={m.sub || (m.kind === "subs" ? "Altyazı" : m.kind === "lyrics" ? "Şarkı sözü" : "Metin")} lines={m.lines} video={m.video} audio={m.audio}
+    back={m.src === "podcast" ? "/medya/podcast" : m.src === "song" ? "/medya/sarki" : "/medya/benim"}
+    onVideo={m.src === "song" ? async (url) => { await db.media.update(m.id!, { video: url }); refresh(); } : undefined}
     onSaveTr={async (tr) => { await db.media.update(m.id!, { lines: m.lines.map((l, i) => ({ ...l, tr: tr[i] || undefined })) }); refresh(); }}
     onDelete={async () => { await db.media.delete(m.id!); toast("Silindi"); go("/medya/benim"); }} />;
   const file = async (f: File) => {
@@ -521,7 +589,7 @@ function Mine({ open }: { open: string | null }) {
         {rows.map((r) => (
           <div key={r.id} className="card hover row between" style={{ padding: "10px 14px" }} onClick={() => go(`/medya/benim?m=${r.id}`)}>
             <div><b>{r.title}</b><div className="muted tiny">{r.lines.length} satır · {new Date(r.ts).toLocaleDateString("tr")}</div></div>
-            <span className="tag">{r.kind === "subs" ? "Altyazı" : "Söz"}</span>
+            <span className="tag">{r.src === "podcast" ? "Podcast" : r.src === "song" ? "Şarkı" : r.kind === "subs" ? "Altyazı" : "Söz"}</span>
           </div>
         ))}
       </div>}

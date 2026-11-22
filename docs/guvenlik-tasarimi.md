@@ -59,3 +59,10 @@
 - **Sunucu:** Cloudflare KV `SYNC`, kutu ≤ 8 MB, IP başına dakikada 12 istek, 400 gün kullanılmazsa TTL ile silinir. "Kapat ve sil" düğmesi DELETE ile hemen siler (KVKK md. 7/11).
 - **Tehdit:** kodu ele geçiren ilerlemeyi okuyabilir/üzerine yazabilir (kod = tek anahtar). Kabul edildi: içerik kişisel veri değil (kelime ilerlemesi, sohbet geçmişi); kullanıcıya "kodu paylaşma, sohbete kişisel bilgi yazma" uyarısı var. Kod tahmini 2^100 denemede imkânsız.
 - **Çakışma:** son yazan kazanır. Açılışta buluttaki daha yeniyse ve bu cihazda değişiklik yoksa otomatik çekilir. Her kişi kendi kodunu kullanır.
+
+## Podcast, şarkı sözü, canlı döküm (22 Kas)
+- `/pod/search` (Apple iTunes Search; Cloudflare IP'leri sınırlanırsa fyyd.de), `/pod/feed` (podcast'in herkese açık RSS'i), `/pod/transcript` (ses ADRESİ Groq Whisper'a verilir, ses bizde saklanmaz; döküm KV'de 60 gün önbellek `pt4:`+sha256(url)), `/pod/audio` (sadece audio/* içerik aktaran, Range destekli aracı; http podcastler https uygulamada çalsın diye), `/lyrics` (lrclib.net).
+- **SSRF önlemi:** `safeUrl()` sadece http/https alır; localhost, özel IP blokları ve çıplak IP adresleri reddedilir. Aracı sadece ses türü içerik geçirir (genel proxy olarak kullanılamaz).
+- **Canlı döküm (PC):** `getDisplayMedia` ile kullanıcının kendi izniyle sekmenin sesi alınır, 10 sn'lik parçalar `/stt`'ye gider, ses saklanmaz. YouTube sunucusundan altyazı/veri ÇEKİLMEZ.
+- Hız sınırları: IP 40/dk, cihaz 25/dk (döküm ayrı anahtar `ptr:`). Groq ücretsiz kotası doğal üst sınır.
+- CSP: `img-src https:` ve `media-src https:` açıldı (podcast kapak/ses her alan adından gelebilir); script-src hâlâ sadece 'self'.
