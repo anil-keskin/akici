@@ -335,3 +335,48 @@ select.input { padding: 10px 12px; }
   .path { gap: 10px; }
   .node { width: 64px; height: 64px; }
 }
+
+/* ---------- v2.1: kategori yolları, sade ana sayfa, beceri listesi ---------- */
+.iris { --tc: var(--iris); --tc-soft: var(--iris-soft); }
+.mint { --tc: var(--mint); --tc-soft: var(--mint-soft); }
+.sky { --tc: var(--sky); --tc-soft: var(--sky-soft); }
+.coral { --tc: var(--coral); --tc-soft: var(--coral-soft); }
+.amber { --tc: var(--amber); --tc-soft: var(--amber-soft); }
+.rose { --tc: var(--rose); --tc-soft: color-mix(in srgb, var(--rose) 16%, var(--surface)); }
+.track-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(158px, 1fr)); gap: 12px; }
+.track-card { text-align: left; border: 0; cursor: pointer; padding: 16px 14px 14px; border-radius: 22px; display: flex; flex-direction: column; gap: 4px; min-width: 0;
+  background: var(--tc-soft); color: var(--ink); font: inherit; box-shadow: 0 5px 0 color-mix(in srgb, var(--tc) 30%, transparent); transition: transform .12s, box-shadow .12s; }
+.track-card:hover { transform: translateY(-2px); }
+.track-card:active { transform: translateY(3px); box-shadow: 0 2px 0 color-mix(in srgb, var(--tc) 30%, transparent); }
+.track-card b { font-size: 16px; line-height: 1.2; }
+.track-card .small { line-height: 1.35; }
+.track-emoji { font-size: 34px; line-height: 1; width: 52px; height: 52px; display: grid; place-items: center; border-radius: 16px; background: var(--surface); flex: none; }
+.track-prog { display: block; height: 7px; border-radius: 99px; background: color-mix(in srgb, var(--tc) 18%, var(--surface)); margin-top: 8px; overflow: hidden; }
+.track-prog i { display: block; height: 100%; background: var(--tc); border-radius: 99px; }
+.track-head { background: var(--tc-soft); border: 0; }
+.node.next { background: var(--surface); color: var(--tc, var(--iris)); border: 3px solid color-mix(in srgb, var(--iris) 35%, var(--line)); box-shadow: 0 7px 0 var(--line); }
+.path-row { --x: 0px; }
+@media (max-width: 520px) { .path-row { transform: translateX(calc(var(--x) * .55)) !important; } }
+
+.today-top { display: flex; align-items: center; gap: 10px; }
+.pill { display: inline-flex; align-items: center; gap: 5px; padding: 6px 11px; border-radius: 99px; background: var(--surface); border: 1.5px solid var(--line); font-weight: 800; font-size: 14px; }
+.go-card { border-radius: 26px; padding: 20px; background: var(--iris); color: #fff; display: flex; flex-direction: column; gap: 12px; position: relative; overflow: hidden; }
+.go-card .muted, .go-card .small { color: rgba(255,255,255,.82); }
+.go-card .btn.white { background: #fff; color: var(--iris); box-shadow: 0 6px 0 rgba(0,0,0,.18); font-size: 18px; padding: 16px 22px; border-radius: 18px; }
+.go-card .meter { height: 10px; border-radius: 99px; background: rgba(255,255,255,.22); overflow: hidden; }
+.go-card .meter i { display: block; height: 100%; background: #ffd166; border-radius: 99px; }
+.quick { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.quick button { border: 0; cursor: pointer; font: inherit; color: var(--ink); background: var(--surface); border-radius: 20px; padding: 14px 8px; display: flex; flex-direction: column; align-items: center; gap: 6px;
+  box-shadow: 0 4px 0 var(--line); font-weight: 750; font-size: 14px; position: relative; }
+.quick button:active { transform: translateY(2px); box-shadow: 0 2px 0 var(--line); }
+.quick .badge { position: absolute; top: 6px; right: 8px; background: var(--coral); color: #fff; border-radius: 99px; font-size: 11px; padding: 1px 7px; }
+.sec-title { font-size: 13px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-3); margin: 6px 2px 0; }
+.list { background: var(--surface); border-radius: 20px; overflow: hidden; border: 1.5px solid var(--line); }
+.list button { width: 100%; border: 0; background: none; font: inherit; color: var(--ink); cursor: pointer; display: flex; align-items: center; gap: 12px; padding: 13px 14px; text-align: left; }
+.list button + button { border-top: 1px solid var(--line); }
+.list button:hover { background: var(--bg-2); }
+.list .ico { width: 40px; height: 40px; }
+.list .grow { min-width: 0; }
+.seg { display: flex; gap: 4px; padding: 4px; border-radius: 16px; background: var(--bg-2); margin-bottom: 14px; }
+.seg button { flex: 1; border: 0; background: none; font: inherit; font-weight: 750; font-size: 14px; color: var(--ink-2); padding: 9px 6px; border-radius: 12px; cursor: pointer; }
+.seg button.on { background: var(--surface); color: var(--ink); box-shadow: var(--shadow-1); }

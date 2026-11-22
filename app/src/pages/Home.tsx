@@ -1,10 +1,11 @@
 import { useEffect, useState } from "react";
-import { Flame, Repeat, Sparkles, BookOpen, GraduationCap, Headphones, Mic, Theater, MessageCircle, Library, Quote, ShieldCheck, Trophy, Clock, Clapperboard, Compass, Check, Lock, Star, Gift, Cloud } from "lucide-react";
-import { AudioBtn, Bar, Lv, Mascot, Ring } from "../components/ui";
+import { Flame, Repeat, Sparkles, Trophy, Cloud, MessageCircle, Dices } from "lucide-react";
+import { AudioBtn, Lv, Mascot } from "../components/ui";
+import { TRACKS, unitPid } from "../lib/tracks";
 import { WordSheet } from "../components/WordSheet";
 import { counts } from "../lib/srs";
 import { goal, levelFromXp, onStats, streak, today, totalXp } from "../lib/stats";
-import { phrases, words, type Phrase, type Word, KIND_TR, trShow } from "../lib/data";
+import { words, type Word, trShow } from "../lib/data";
 import { db, kvGet } from "../lib/db";
 import { go } from "../lib/router";
 
@@ -14,29 +15,15 @@ function hello() {
 }
 const daySeed = () => { const d = new Date(); return d.getFullYear() * 400 + d.getMonth() * 31 + d.getDate(); };
 
-const MODULES = [
-  { to: "/kelimeler", t: "Kelimeler", d: "20.000 kelime, sıklık sırasıyla", i: BookOpen, c: "iris" },
-  { to: "/gramer", t: "Gramer", d: "A1'den C1'e konu konu", i: GraduationCap, c: "mint" },
-  { to: "/kaliplar", t: "Kalıplar", d: "Phrasal verb, deyim, atasözü", i: Quote, c: "amber" },
-  { to: "/dinleme", t: "Dinleme", d: "Dikte, hızlı dinleme, cümle akışı", i: Headphones, c: "sky" },
-  { to: "/konusma", t: "Konuşma", d: "Shadowing, telaffuz puanı", i: Mic, c: "coral" },
-  { to: "/okuma", t: "Okuma", d: "Hikâyeler ve klasik kitaplar", i: Library, c: "rose" },
-  { to: "/kesfet", t: "Keşfet", d: "Her gün yeni: gündem, tarih, bilim", i: Compass, c: "sky" },
-  { to: "/medya", t: "Dizi & Şarkı", d: "Şarkılar, dizi kalıpları, 8.900 diyalog", i: Clapperboard, c: "coral" },
-  { to: "/senaryolar", t: "Senaryolar", d: "Restoran, havalimanı, iş görüşmesi…", i: Theater, c: "iris" },
-  { to: "/sohbet", t: "AI öğretmen", d: "Sohbet, düzeltme, sınav pratiği", i: MessageCircle, c: "mint" },
-] as const;
-
 export default function Home() {
   const [st, setSt] = useState({ xp: 0, goal: 50, streak: 0, shield: false, due: 0, fresh: 0, total: 0, mature: 0, lvl: { lvl: 1, into: 0, need: 120 }, minutes: 0 });
   const [wod, setWod] = useState<Word | null>(null);
-  const [pod, setPod] = useState<Phrase | null>(null);
   const [open, setOpen] = useState<Word | null>(null);
   const [name, setName] = useState("");
   const [noBackup, setNoBackup] = useState(false);
   useEffect(() => { kvGet("sync.code", "").then((c) => setNoBackup(!c)); }, []);
-  const [level, setLevel] = useState("A1");
-  const [learned, setLearned] = useState(0);
+  const [lastTrack, setLastTrack] = useState("");
+  const [doneSet, setDoneSet] = useState<Set<string>>(new Set());
 
   const refresh = async () => {
     const [t, g, s, c, tx] = await Promise.all([today(), goal(), streak(), counts(), totalXp()]);
@@ -44,157 +31,92 @@ export default function Home() {
   };
   useEffect(() => {
     refresh();
-    db.cards.where("kind").equals("word").count().then(setLearned);
+    kvGet("lastTrack", "").then(setLastTrack);
+    db.progress.where("kind").equals("ai").toArray().then((r) => setDoneSet(new Set(r.filter((p) => p.done > 0).map((p) => p.id))));
     const off = onStats(refresh);
     kvGet("name", "").then(setName);
     kvGet("level", "A1").then((l) => {
-      setLevel(l);
       const band = { A1: [0, 600], A2: [600, 1500], B1: [1500, 3500], B2: [3500, 7000], C1: [7000, 12000], C2: [12000, 20000] }[l] || [0, 600];
       words().then((ws) => setWod(ws[band[0] + (daySeed() % (band[1] - band[0]))]));
     });
-    phrases().then((ps) => { const pool = ps.filter((p) => p.tr.length && (p.k === "idiom" || p.k === "phrasal")).slice(0, 1500); setPod(pool[daySeed() % pool.length]); });
     return off;
   }, []);
 
-  const pct = st.xp / st.goal;
+  const pct = Math.min(1, st.xp / st.goal);
+  const last = lastTrack ? TRACKS.find((t) => t.id === lastTrack) : undefined;
+  const lastN = last ? last.units.filter((un) => doneSet.has(unitPid(un))).length : 0;
   return (
-    <div className="stack">
-      <div className="hero">
-        <div className="blob" style={{ width: 260, height: 260, right: -60, top: -80, background: "#ff9be0" }} />
-        <div className="blob" style={{ width: 200, height: 200, left: "40%", bottom: -120, background: "#6fd3ff" }} />
-        <div className="row between wrap" style={{ position: "relative", gap: 24 }}>
-          <div className="col" style={{ gap: 10, maxWidth: 520 }}>
-            <div className="row" style={{ gap: 10 }}>
-              <span className="chip" style={{ background: "rgba(255,255,255,.18)", color: "#fff" }}><Flame size={16} /> {st.streak} gün seri</span>
-              {st.shield && <span className="chip" style={{ background: "rgba(255,255,255,.18)", color: "#fff" }} title="Bu hafta bir boş günün affedildi"><ShieldCheck size={16} /> Kalkan</span>}
-              <span className="chip" style={{ background: "rgba(255,255,255,.18)", color: "#fff" }}><Trophy size={16} /> Seviye {st.lvl.lvl}</span>
-            </div>
-            <div className="row" style={{ gap: 12 }}>
-              <div className="loki-bounce" style={{ background: "rgba(255,255,255,.9)", borderRadius: "50%", padding: 4, flex: "none" }}><Mascot size={58} /></div>
-              <h1 className="h1" style={{ color: "#fff" }}>{hello()}{name ? `, ${name}` : ""}!</h1>
-            </div>
-            <div className="sub hero-sub">{st.due > 0 ? `${st.due} kart tekrarını bekliyor. ` : ""}Bugünkü dersin hazır: yeni kelimeler, gramer, dinleme ve konuşma karışık.</div>
-            <div className="row wrap" style={{ marginTop: 8 }}>
-              <button className="btn big white" onClick={() => go("/ders")}><Sparkles size={20} /> {st.xp > 0 ? "Devam et" : "Günün dersine başla"}</button>
-              <button className="btn big" style={{ background: "rgba(255,255,255,.16)", color: "#fff" }} onClick={() => go("/rastgele")}>🎲 Rastgele</button>
-              {st.due > 0 && <button className="btn big" style={{ background: "rgba(255,255,255,.16)", color: "#fff" }} onClick={() => go("/tekrar")}><Repeat size={20} /> Tekrar ({st.due})</button>}
-            </div>
-          </div>
-          <div className="hero-bar"><div className="row between small" style={{ fontWeight: 700 }}><span>Günlük hedef</span><span>{st.xp} / {st.goal} XP</span></div>
-            <div style={{ height: 10, borderRadius: 99, background: "rgba(255,255,255,.25)", marginTop: 6 }}><div style={{ height: "100%", width: `${Math.min(100, pct * 100)}%`, borderRadius: 99, background: "#ffd166" }} /></div></div>
-          <div className="hero-ring"><Ring value={pct} size={150} stroke={14} track="rgba(255,255,255,.2)">
-            <div><div style={{ fontSize: 32, fontWeight: 800 }}>{st.xp}</div><div className="small" style={{ opacity: .8 }}>/ {st.goal} XP</div></div>
-          </Ring></div>
+    <div className="col" style={{ gap: 16, maxWidth: 640, margin: "0 auto" }}>
+      <div className="today-top">
+        <div className="loki-bounce" style={{ flex: "none" }}><Mascot size={46} /></div>
+        <div className="grow" style={{ minWidth: 0 }}>
+          <div className="muted small">{hello()}</div>
+          <b style={{ fontSize: 20 }}>{name || "Hoş geldin"}</b>
         </div>
+        <span className="pill" title="Gün serisi"><Flame size={16} color="#ff7a00" /> {st.streak}</span>
+        <span className="pill" title="Seviye"><Trophy size={15} color="var(--amber)" /> {st.lvl.lvl}</span>
       </div>
 
-      {noBackup && (
-        <button className="card row" style={{ gap: 12, textAlign: "left", cursor: "pointer", border: "2px dashed var(--mint)" }} onClick={() => go("/ayarlar")}>
-          <Cloud color="var(--mint)" style={{ flex: "none" }} />
-          <div className="grow"><b>İlerlemeni kaybetme</b><div className="muted small">Bulut yedeğini aç: telefon değişse de kaldığın yerden devam et. Hesap gerekmez.</div></div>
-          <span className="btn sm mint">Aç</span>
+      <div className="go-card">
+        <div className="row between" style={{ alignItems: "flex-start", gap: 10 }}>
+          <div style={{ minWidth: 0 }}>
+            <div className="small" style={{ fontWeight: 800, letterSpacing: ".06em" }}>GÜNÜN DERSİ · ~5 DK</div>
+            <div style={{ fontSize: 22, fontWeight: 800, lineHeight: 1.25, marginTop: 4 }}>{st.xp >= st.goal ? "Hedef tamam! Bir ders daha?" : "Yeni kelimeler, gramer ve konuşma"}</div>
+          </div>
+          <div style={{ background: "rgba(255,255,255,.92)", borderRadius: "50%", padding: 4, flex: "none" }}><Mascot size={60} mood={st.xp >= st.goal ? "wow" : "happy"} /></div>
+        </div>
+        <div>
+          <div className="meter"><i style={{ width: `${pct * 100}%` }} /></div>
+          <div className="small" style={{ marginTop: 6 }}>{st.xp} / {st.goal} XP · günlük hedef</div>
+        </div>
+        <button className="btn white" onClick={() => go("/ders")}><Sparkles size={20} /> {st.xp > 0 ? "Devam et" : "Başla"}</button>
+      </div>
+
+      <div className="quick">
+        <button onClick={() => go("/tekrar")}>{st.due > 0 && <span className="badge">{st.due}</span>}<Repeat size={24} color="var(--sky)" />Tekrar</button>
+        <button onClick={() => go("/sohbet")}><MessageCircle size={24} color="var(--mint)" />Loki ile konuş</button>
+        <button onClick={() => go("/rastgele")}><Dices size={24} color="var(--amber)" />Rastgele</button>
+      </div>
+
+      {last ? (
+        <button className={`track-card ${last.color}`} style={{ flexDirection: "row", alignItems: "center", gap: 12 }} onClick={() => go(`/yol/${last.id}`)}>
+          <span className="track-emoji">{last.emoji}</span>
+          <span className="col grow" style={{ gap: 2, minWidth: 0 }}>
+            <span className="tiny muted" style={{ fontWeight: 800, letterSpacing: ".05em" }}>KALDIĞIN KATEGORİ</span>
+            <b>{last.title}</b>
+            <span className="track-prog" style={{ marginTop: 4 }}><i style={{ width: `${(lastN / last.units.length) * 100}%` }} /></span>
+          </span>
+          <span className="small" style={{ fontWeight: 800 }}>{lastN}/{last.units.length}</span>
         </button>
-      )}
+      ) : null}
 
-      <Path learned={learned} />
-
-      <div className="grid g4">
-        <Stat icon={<Repeat />} c="sky" v={st.due} l="Tekrar bekleyen" onClick={() => go("/tekrar")} />
-        <Stat icon={<BookOpen />} c="iris" v={st.total} l="Destedeki kart" onClick={() => go("/kelimeler")} />
-        <Stat icon={<Trophy />} c="mint" v={st.mature} l="Kalıcı öğrenilen" />
-        <Stat icon={<Clock />} c="amber" v={`${st.minutes} dk`} l="Bugün çalışma" />
-      </div>
-
-      <div className="grid g2">
-        {wod && (
-          <div className="card hover" onClick={() => setOpen(wod)}>
-            <div className="row between"><span className="muted small" style={{ fontWeight: 700 }}>GÜNÜN KELİMESİ</span><Lv lv={wod.lv} /></div>
-            <div className="row between" style={{ marginTop: 8 }}>
-              <div>
-                <div className="display" style={{ fontSize: 36, fontWeight: 650 }}>{wod.w}</div>
-                <div className="ipa">{wod.ipa}</div>
-                <div className="sub" style={{ marginTop: 6 }}>{trShow(wod.tr, 3) || wod.d[0]?.g}</div>
-              </div>
-              <AudioBtn text={wod.w} slow={false} />
-            </div>
-          </div>
-        )}
-        {pod && (
-          <div className="card">
-            <div className="row between"><span className="muted small" style={{ fontWeight: 700 }}>GÜNÜN KALIBI</span><span className="tag">{KIND_TR[pod.k]}</span></div>
-            <div className="row between" style={{ marginTop: 8 }}>
-              <div>
-                <div className="display" style={{ fontSize: 30, fontWeight: 650 }}>{pod.w}</div>
-                <div className="sub" style={{ marginTop: 6 }}>{trShow(pod.tr, 6)}</div>
-                {pod.ex && <div className="muted small" style={{ marginTop: 6, fontStyle: "italic" }}>“{pod.ex}”</div>}
-              </div>
-              <AudioBtn text={pod.ex || pod.w} slow={false} />
-            </div>
-          </div>
-        )}
-      </div>
-
-      <div className="row between"><h2 className="h2">Ne çalışmak istersin?</h2><span className="muted small">Seviyen: <Lv lv={level} /></span></div>
-      <div className="grid g4">
-        {MODULES.map((m) => (
-          <div key={m.to} className="card hover" onClick={() => go(m.to)}>
-            <div className={`ico ${m.c}`}><m.i size={22} /></div>
-            <div className="h3" style={{ marginTop: 12 }}>{m.t}</div>
-            <div className="muted small">{m.d}</div>
-          </div>
+      <div className="row between"><div className="sec-title">Kategoriler</div><button className="btn sm ghost" onClick={() => go("/ogren")}>Tümü</button></div>
+      <div className="scroll-x" style={{ gap: 10 }}>
+        {TRACKS.slice(0, 6).map((t) => (
+          <button key={t.id} className={`track-card ${t.color}`} style={{ minWidth: 150, maxWidth: 150 }} onClick={() => go(`/yol/${t.id}`)}>
+            <span className="track-emoji">{t.emoji}</span><b>{t.title}</b>
+          </button>
         ))}
       </div>
 
-      <div className="card row" style={{ gap: 18 }}>
-        <Mascot size={64} mood="wow" />
-        <div className="grow">
-          <div className="h3">Seviye {st.lvl.lvl} → {st.lvl.lvl + 1}</div>
-          <div className="muted small" style={{ margin: "4px 0 8px" }}>{st.lvl.into} / {st.lvl.need} XP · Tekrar yapmak ve konuşmak en çok XP kazandırır.</div>
-          <Bar value={st.lvl.into / st.lvl.need} cls="amber" />
-        </div>
-        <button className="btn ghost" onClick={() => go("/test")}>Seviye testi</button>
-      </div>
-      <WordSheet w={open} onClose={() => setOpen(null)} />
-    </div>
-  );
-}
-
-function Stat({ icon, c, v, l, onClick }: { icon: React.ReactNode; c: string; v: number | string; l: string; onClick?: () => void }) {
-  return (
-    <div className={`card ${onClick ? "hover" : ""}`} onClick={onClick}>
-      <div className="row"><div className={`ico ${c}`}>{icon}</div><div className="stat"><b>{v}</b><span className="muted small">{l}</span></div></div>
-    </div>
-  );
-}
-
-/* Duolingo tarzı öğrenme yolu: her ünite 20 kelime (sıklık sırasıyla), her 5. durak tekrar sandığı. */
-const UNIT = 20;
-function Path({ learned }: { learned: number }) {
-  const cur = Math.floor(learned / UNIT);
-  const start = Math.max(0, cur - 2);
-  const nodes = Array.from({ length: 6 }, (_, k) => start + k);
-  return (
-    <div className="card" style={{ overflow: "hidden" }}>
-      <div className="row between" style={{ marginBottom: 6 }}>
-        <div><div className="h3">Öğrenme yolu</div><div className="muted small">Ünite {cur + 1} / 1000 · her ünite en sık kullanılan 20 yeni kelime</div></div>
-        <span className="tag">{learned.toLocaleString("tr")} / 20.000 kelime</span>
-      </div>
-      <div className="path">
-        {nodes.map((u, k) => {
-          const done = u < cur, now = u === cur, chest = (u + 1) % 5 === 0;
-          const x = [0, 60, 90, 60, 0, -60, -90, -60][k % 8];
-          return (
-            <div key={u} className="path-row" style={{ transform: `translateX(${x}px)` }}>
-              {now && <div className="path-bubble">BAŞLA</div>}
-              <button className={`node ${done ? "done" : now ? "now" : "lock"} ${chest ? "chest" : ""}`} aria-label={`Ünite ${u + 1}`}
-                disabled={!done && !now} onClick={() => go(chest && done ? "/tekrar" : "/ders")}>
-                {done ? <Check size={30} strokeWidth={3.5} /> : !now ? <Lock size={24} /> : chest ? <Gift size={30} /> : <Star size={30} fill="currentColor" />}
-              </button>
-              <span className="muted tiny">{chest ? "Tekrar" : `Ünite ${u + 1}`}</span>
+      {wod && (
+        <div className="card hover" onClick={() => setOpen(wod)}>
+          <div className="row between"><span className="sec-title" style={{ margin: 0 }}>Günün kelimesi</span><Lv lv={wod.lv} /></div>
+          <div className="row between" style={{ marginTop: 8, gap: 10 }}>
+            <div style={{ minWidth: 0 }}>
+              <div className="display" style={{ fontSize: 32, fontWeight: 650 }}>{wod.w}</div>
+              <div className="ipa">{wod.ipa}</div>
+              <div className="sub" style={{ marginTop: 4 }}>{trShow(wod.tr, 3) || wod.d[0]?.g}</div>
             </div>
-          );
-        })}
-      </div>
+            <AudioBtn text={wod.w} slow={false} />
+          </div>
+        </div>
+      )}
+
+      {noBackup && (
+        <button className="btn ghost" style={{ justifyContent: "flex-start" }} onClick={() => go("/ayarlar")}><Cloud size={18} color="var(--mint)" /> İlerlemeni yedekle (telefon değişse de kaybolmaz)</button>
+      )}
+      <WordSheet w={open} onClose={() => setOpen(null)} />
     </div>
   );
 }

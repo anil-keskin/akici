@@ -67,11 +67,15 @@ export default function Chat({ params }: { params: URLSearchParams }) {
   useEffect(() => { endRef.current?.scrollIntoView({ behavior: "smooth", block: "end" }); }, [lines, busy]);
   useEffect(() => () => { callRef.current = false; stopSpeaking(); lis.current?.cancel(); }, []);
 
+  // Kategori yolundan gelen canlandırma (rp): kısa senaryo tarifi
+  const rp = params.get("rp");
   const system = (): Msg => ({
     role: "system",
     content: mode === "roleplay" && sc
       ? MODES.roleplay.system(sc.lv, `${sc.en}. Setting: ${sc.setting}. You play: ${sc.ai}. The learner plays: ${sc.you}. Goal: ${sc.goal}. Start in character.`)
-      : MODES[mode].system(lv),
+      : mode === "roleplay" && rp
+        ? MODES.roleplay.system(lv, `${rp} Start in character with a short first line.`)
+        : MODES[mode].system(lv),
   });
 
   const hush = useRef(false);
@@ -153,19 +157,19 @@ export default function Chat({ params }: { params: URLSearchParams }) {
   return (
     <div className="col" style={{ gap: 14, maxWidth: 880, margin: "0 auto", minHeight: "calc(100vh - 140px)" }}>
       {consentUi}
-      <PageHead title="AI öğretmen" sub={sc ? `Senaryo: ${sc.title}` : "Hatalarını düzeltir, Türkçe açıklar, seninle sesli konuşur."}
+      <PageHead title="AI öğretmen" sub={sc ? `Senaryo: ${sc.title}` : rp && mode === "roleplay" ? `Canlandırma: ${params.get("rt") || "senaryo"}` : "Hatalarını düzeltir, Türkçe açıklar, seninle sesli konuşur."}
         right={<div className="row"><button className={`btn icon ${autoTr ? "primary" : ""}`} title="Türkçesini hep göster" aria-pressed={autoTr} onClick={() => { const n = !autoTr; setAutoTr(n); kvSet("chat.autoTr", n); }}><Languages size={18} /></button>
           <button className="btn icon" title="Sesli yanıt" onClick={() => { setTts(!tts); stopSpeaking(); }}>{tts ? <Volume2 size={18} /> : <VolumeX size={18} />}</button>
           <button className="btn icon" title="Temizle" onClick={() => { setLines([]); chatId.current = undefined; }}><Trash2 size={18} /></button>
           <button className="btn icon" title="Ayarlar" onClick={() => go("/ayarlar")}><Settings2 size={18} /></button></div>} />
       <div className="scroll-x">
         {(Object.keys(MODES) as Mode[]).map((m) => <button key={m} className={`chip ${mode === m ? "on" : ""}`} onClick={() => { setMode(m); if (m !== "roleplay") setSc(null); }}>{MODES[m].title}</button>)}
-        {mode === "roleplay" && !sc && <button className="chip" onClick={() => go("/senaryolar")}>Senaryo seç →</button>}
+        {mode === "roleplay" && !sc && !rp && <button className="chip" onClick={() => go("/senaryolar")}>Senaryo seç →</button>}
       </div>
       <div className="card row chat-head" style={{ gap: 18, background: `linear-gradient(135deg, color-mix(in srgb, ${persona.color} 14%, var(--surface)), var(--surface))` }}>
         <Avatar p={persona} talking={talking} listening={rec} size={96} />
         <div className="grow" style={{ minWidth: 160 }}>
-          <div className="h3">{persona.name} <span className="muted small">· {sc ? sc.ai : persona.role}</span></div>
+          <div className="h3">{persona.name} <span className="muted small">· {sc ? sc.ai : rp && mode === "roleplay" ? (params.get("rt") || "Canlandırma") : persona.role}</span></div>
           <div className="muted small">{rec ? (call ? "Dinliyorum… konuş, susunca kendim gönderirim." : "Dinliyorum… bitince ■ düğmesine bas.") : heard ? heard : talking ? "Konuşuyor… (susturmak için Sustur ya da mikrofona bas)" : busy ? "Düşünüyor…" : call ? "Sesli sohbet açık" : "Yaz ya da sesli sohbeti başlat."}</div>
           {rec && heard && <div className="small" style={{ marginTop: 4, fontStyle: "italic" }}>“{heard}”</div>}
           {err && <div className="small" style={{ marginTop: 4, color: "var(--coral)", fontWeight: 600 }}>⚠️ {err}</div>}

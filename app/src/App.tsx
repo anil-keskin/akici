@@ -31,6 +31,7 @@ const pages: Record<string, ReturnType<typeof P>> = {
   "/kesfet": P(() => import("./pages/Explore")),
   "/rastgele": P(() => import("./pages/Random")),
   "/pratik": P(() => import("./pages/AIPractice")),
+  "/yol": P(() => import("./pages/Track")),
   "/senaryolar": P(() => import("./pages/Scenarios")),
   "/sohbet": P(() => import("./pages/Chat")),
   "/ilerleme": P(() => import("./pages/Progress")),
@@ -45,30 +46,33 @@ const NAV = [
   { to: "/", label: "Ana sayfa", icon: HomeI },
   { to: "/tekrar", label: "Tekrar", icon: Repeat },
   { sec: "Öğren" },
+  { to: "/ogren", label: "Kategoriler", icon: LayoutGrid },
   { to: "/kelimeler", label: "Kelimeler", icon: BookOpen },
   { to: "/gramer", label: "Gramer", icon: GraduationCap },
   { to: "/kaliplar", label: "Kalıplar & deyimler", icon: Quote },
   { to: "/okuma", label: "Okuma", icon: Library },
-  { to: "/medya", label: "Dizi & Şarkı", icon: Clapperboard },
-  { to: "/kesfet", label: "Keşfet", icon: Compass },
-  { to: "/rastgele", label: "Rastgele", icon: Dices },
-  { sec: "Pratik" },
   { to: "/dinleme", label: "Dinleme", icon: Headphones },
+  { sec: "Konuş" },
+  { to: "/sohbet", label: "Loki ile sohbet", icon: MessageCircle },
   { to: "/konusma", label: "Konuşma & telaffuz", icon: Mic },
   { to: "/senaryolar", label: "Senaryolar", icon: Theater },
-  { to: "/sohbet", label: "AI öğretmen", icon: MessageCircle },
+  { sec: "Keşfet" },
+  { to: "/kesfet", label: "Keşfet", icon: Compass },
+  { to: "/medya", label: "Podcast, şarkı & dizi", icon: Clapperboard },
+  { to: "/rastgele", label: "Rastgele", icon: Dices },
   { sec: "Sen" },
   { to: "/ilerleme", label: "İlerleme", icon: BarChart3 },
   { to: "/ayarlar", label: "Ayarlar", icon: SetI },
 ] as const;
 const TITLES: Record<string, string> = Object.fromEntries([
   ...NAV.filter((n) => "to" in n).map((n) => [(n as { to: string }).to, (n as { label: string }).label]),
-  ["/ogren", "Öğren"], ["/test", "Seviye testi"],
+  ["/ogren", "Öğren"], ["/test", "Seviye testi"], ["/yol", "Kategori"], ["/pratik", "Loki alıştırma"],
 ]);
+const DISCOVER: [string, string][] = [["/kesfet", "📰 Oku"], ["/medya", "🎧 İzle & dinle"], ["/rastgele", "🎲 Rastgele"]];
 const TABS = [
   { to: "/", label: "Bugün", icon: HomeI, match: ["/", "/ders", "/tekrar"] },
-  { to: "/ogren", label: "Öğren", icon: LayoutGrid, match: ["/ogren", "/kelimeler", "/gramer", "/kaliplar", "/okuma", "/medya", "/konusma", "/dinleme", "/senaryolar", "/rastgele"] },
-  { to: "/kesfet", label: "Keşfet", icon: Compass, match: ["/kesfet"] },
+  { to: "/ogren", label: "Öğren", icon: LayoutGrid, match: ["/ogren", "/yol", "/pratik", "/kelimeler", "/gramer", "/kaliplar", "/okuma", "/konusma", "/dinleme", "/senaryolar"] },
+  { to: "/kesfet", label: "Keşfet", icon: Compass, match: ["/kesfet", "/medya", "/rastgele"] },
   { to: "/sohbet", label: "Loki", icon: MessageCircle, match: ["/sohbet"] },
   { to: "/ilerleme", label: "Sen", icon: BarChart3, match: ["/ilerleme", "/ayarlar", "/test"] },
 ];
@@ -111,6 +115,11 @@ export default function App() {
           </div>
         )}
         <div className="page">
+          {DISCOVER.some(([to]) => to === base) && (
+            <div className="seg" role="tablist" aria-label="Keşfet bölümleri">
+              {DISCOVER.map(([to, l]) => <button key={to} role="tab" aria-selected={base === to} className={base === to ? "on" : ""} onClick={() => go(to)}>{l}</button>)}
+            </div>
+          )}
           <Suspense fallback={<Spinner />}>
             <Page id={id} params={params} />
           </Suspense>
