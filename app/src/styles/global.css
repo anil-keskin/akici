@@ -507,3 +507,10 @@ body { font-weight: 500; }
 .feedback.ok { border-color: color-mix(in srgb, var(--mint) 40%, transparent); }
 .feedback.bad { border-color: color-mix(in srgb, var(--coral) 40%, transparent); }
 :focus-visible { outline: 3px solid color-mix(in srgb, var(--iris) 55%, transparent); outline-offset: 2px; }
+
+/* Okuma hızı çubuğu (Keşfet / okuma) */
+.rate-bar { position: sticky; top: calc(64px + env(safe-area-inset-top, 0px)); z-index: 6; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 10px 12px; margin-bottom: 16px;
+  background: var(--surface); border: 2px solid var(--line); border-radius: 18px; box-shadow: 0 4px 0 var(--line-2); }
+.rate-slider { display: flex; align-items: center; gap: 8px; flex: 1 1 180px; min-width: 0; }
+.rate-slider input { flex: 1; min-width: 0; accent-color: var(--iris); height: 28px; }
+.para-on { background: var(--iris-soft); border-radius: 16px; padding: 6px 10px 1px; margin: 0 -10px; transition: background .3s; }

@@ -45,6 +45,7 @@ export default function Chat({ params }: { params: URLSearchParams }) {
   const [heard, setHeard] = useState("");
   const [autoTr, setAutoTr] = useState(false);
   const misses = useRef(0);
+  const lastAi = useRef("");
   useEffect(() => { kvGet("chat.autoTr", false).then(setAutoTr); }, []);
   /** Loki'nin mesajının Türkçesi: aç/kapat; yoksa çevir */
   const setTr = (i: number, tr?: string) => setLines((ls) => ls.map((l, j) => (j === i ? { ...l, tr } : l)));
@@ -112,8 +113,10 @@ export default function Chat({ params }: { params: URLSearchParams }) {
       const row = { mode, title: t.slice(0, 60), messages: all.map((l) => ({ role: l.role, content: l.content })), ts: Date.now() };
       if (chatId.current) await db.chats.put({ ...row, id: chatId.current }); else chatId.current = await db.chats.add(row);
       setBusy(false);
+      lastAi.current = line.content;
       await say(MODES[mode].json ? line.content : line.content.split("\n").filter((l) => !/[çğışöüÇĞİŞÖÜ]/.test(l)).join(" ").slice(0, 500));
-      if (callRef.current && !hush.current) startListening();
+      // Loki'nin sesi tamamen bitsin, sonra mikrofonu aç (yoksa kendi sesini "senin cevabın" sanıyor)
+      if (callRef.current && !hush.current) { await new Promise((r) => setTimeout(r, 700)); if (callRef.current && !hush.current) startListening(); }
     } catch (e) {
       setErr((e as Error).message + (callRef.current ? " · Tekrar söyleyebilirsin." : ""));
       setBusy(false);
@@ -138,12 +141,23 @@ export default function Chat({ params }: { params: URLSearchParams }) {
     const h = await cur.stop().catch((e) => { setErr((e as Error).message); return null; });
     if (!h && callRef.current && misses.current < 2) { misses.current++; setHeard(""); startListening(); return; }
     setHeard("");
+    // Mikrofon Loki'nin kendi sözünü yakaladıysa (yankı) gönderme, seni dinlemeye devam et
+    if (h?.text && callRef.current && isEcho(h.text, lastAi.current)) { startListening(); return; }
     if (h?.text) { misses.current = 0; send(h.text); return; }
     // Sesli sohbette sessiz kaldıysan acele etme: dinlemeye devam et (yaklaşık 1,5 dk), sonra bekle
     if (callRef.current && h && misses.current < 2) { misses.current++; startListening(); return; }
     misses.current = 0;
     if (callRef.current) setErr("Seni bekliyorum. Hazır olunca mikrofona bas."); else if (h) setErr("Ses gelmedi. Mikrofona biraz daha yakın ve net konuş.");
   }
+  /** Mikrofon düğmesi: bir kez bas → eller serbest konuşma (konuş, sus, Loki cevap verir, seni bekler) */
+  const micPress = async () => {
+    if (rec) { stopListening(); return; } // dinlerken basarsan hemen gönderir
+    if (!callRef.current) {
+      if (!(await request())) return;
+      callRef.current = true; setCall(true); setTts(true); setErr("");
+    }
+    startListening();
+  };
   const toggleCall = async () => {
     if (call) { callRef.current = false; setCall(false); stopSpeaking(); lis.current?.cancel(); lis.current = null; setRec(false); return; }
     // Mikrofon onayını en başta al (Loki selam verdikten sonra pencere çıkıp beklemesin)
@@ -170,12 +184,12 @@ export default function Chat({ params }: { params: URLSearchParams }) {
         <Avatar p={persona} talking={talking} listening={rec} size={96} />
         <div className="grow" style={{ minWidth: 160 }}>
           <div className="h3">{persona.name} <span className="muted small">· {sc ? sc.ai : rp && mode === "roleplay" ? (params.get("rt") || "Canlandırma") : persona.role}</span></div>
-          <div className="muted small">{rec ? (call ? "Dinliyorum… konuş, susunca kendim gönderirim." : "Dinliyorum… bitince ■ düğmesine bas.") : heard ? heard : talking ? "Konuşuyor… (susturmak için Sustur ya da mikrofona bas)" : busy ? "Düşünüyor…" : call ? "Sesli sohbet açık" : "Yaz ya da sesli sohbeti başlat."}</div>
+          <div className="muted small">{rec ? "🎙️ Senin sıran — acele etme. Konuş, susunca kendim gönderirim." : heard ? heard : talking ? "Konuşuyor… bitince seni dinleyeceğim (susturmak için Sustur)" : busy ? "Düşünüyor…" : call ? "Eller serbest konuşma açık" : "Yaz ya da 🎙️ düğmesine bir kez bas: eller serbest konuşalım."}</div>
           {rec && heard && <div className="small" style={{ marginTop: 4, fontStyle: "italic" }}>“{heard}”</div>}
           {err && <div className="small" style={{ marginTop: 4, color: "var(--coral)", fontWeight: 600 }}>⚠️ {err}</div>}
           {talking && <button className="btn sm coral" style={{ marginTop: 8 }} onClick={shush}><VolumeX size={15} /> Sustur</button>}
         </div>
-        {MODES[mode].json && (
+        {(
           <button className={`btn ${call ? "coral" : "mint"}`} onClick={toggleCall}>{call ? <><PhoneOff size={18} /> Bitir</> : <><Phone size={18} /> Sesli sohbet</>}</button>
         )}
       </div>
@@ -218,11 +232,21 @@ export default function Chat({ params }: { params: URLSearchParams }) {
       </div>
       {err && <div className="small" style={{ color: "var(--coral)" }}>{err}</div>}
       <div className="row" style={{ position: "sticky", bottom: 76, background: "var(--bg)", paddingTop: 8 }}>
-        <button className={`btn icon ${rec ? "coral" : ""}`} style={{ width: 52, height: 52 }} onClick={() => (rec ? stopListening() : startListening())} aria-label="Sesle yaz">{rec ? <Square /> : <Mic />}</button>
+        <button className={`btn icon ${rec ? "coral" : call ? "mint" : ""}`} style={{ width: 52, height: 52 }} onClick={micPress} aria-label={rec ? "Şimdi gönder" : "Sesli konuş"} title={rec ? "Şimdi gönder (beklemene gerek yok, susunca kendim gönderirim)" : "Sesli konuş: bir kez bas, gerisi otomatik"}>{rec ? <Square /> : <Mic />}</button>
         <textarea className="input grow" rows={1} style={{ minHeight: 52, maxHeight: 160 }} value={v} placeholder={mode === "explain" ? "Türkçe sorabilirsin…" : "İngilizce yaz…"}
           onChange={(e) => setV(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(v); } }} />
         <button className="btn primary icon" style={{ width: 52, height: 52 }} disabled={!v.trim() || busy} onClick={() => send(v)} aria-label="Gönder"><Send /></button>
       </div>
     </div>
   );
+}
+
+/** Duyulan metin Loki'nin son cevabının tekrarı mı? (hoparlörden mikrofona yankı) */
+function isEcho(heard: string, ai: string): boolean {
+  // Kelime ÇİFTLERİNE bak: "My favorite food is pizza" ↔ "What is your favorite food?" yankı sayılmasın
+  const w = (x: string) => x.toLowerCase().replace(/[^a-z\s']/g, " ").split(/\s+/).filter(Boolean);
+  const pairs = (t: string[]) => t.slice(1).map((x, i) => t[i] + " " + x);
+  const h = pairs(w(heard)), a = new Set(pairs(w(ai)));
+  if (h.length < 3 || !a.size) return false;
+  return h.filter((p) => a.has(p)).length / h.length >= 0.6;
 }

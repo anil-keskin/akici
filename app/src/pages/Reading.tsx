@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { RateBar, useReadRate } from "../components/TapText";
 import { Library, ArrowLeft, ChevronLeft, ChevronRight, Volume2, Plus, Check, Languages, Square } from "lucide-react";
 import { Lv, PageHead, Spinner, toast } from "../components/ui";
 import { findWord, load, type Level, type Word, trShow } from "../lib/data";
@@ -87,6 +88,7 @@ function Reader({ id, ch }: { id: string; ch: number }) {
   const [deck, setDeck] = useState<Set<string>>(new Set());
   const [showTr, setShowTr] = useState<Set<number>>(new Set());
   const [reading, setReading] = useState<number | null>(null);
+  const [rate, setRate] = useReadRate();
   useEffect(() => {
     load<{ meta: BookMeta; chapters: Chapter[] }>(`books/${id}.json`).then(setBook);
     db.cards.where("kind").equals("word").toArray().then(async (rows) => {
@@ -111,7 +113,7 @@ function Reader({ id, ch }: { id: string; ch: number }) {
   };
   const readPara = async (pi: number) => {
     if (reading === pi) { stopSpeaking(); setReading(null); return; }
-    setReading(pi); await speak(chapter.p[pi]); setReading((r) => (r === pi ? null : r));
+    setReading(pi); await speak(chapter.p[pi], { rate }); setReading((r) => (r === pi ? null : r));
   };
   const nextCh = () => { addStat({ xp: 15 }); go(`/okuma/${id}?ch=${ch + 1}`); };
   return (
@@ -131,6 +133,7 @@ function Reader({ id, ch }: { id: string; ch: number }) {
           <h2 className="h2" style={{ margin: 0 }}>{chapter.title}</h2>
           <button className="btn sm primary" onClick={() => { try { sessionStorage.setItem("pratik.text", chapter.p.join(" ").slice(0, 4000)); } catch { /* */ } go(`/pratik?k=reading&lv=${book?.meta.lv || "B1"}&t=${encodeURIComponent(chapter.title.slice(0, 80))}`); }}>✨ Bu bölümden alıştırma</button>
         </div>
+        <RateBar rate={rate} setRate={setRate} />
         {paras.map((toks, pi) => (
           <div key={pi} style={{ position: "relative" }}>
             <p>

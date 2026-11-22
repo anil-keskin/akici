@@ -109,7 +109,7 @@ async function speakOne(text: string, opts: { rate?: number; slow?: boolean; voi
   if (native.speak) return new Promise((res) => {
     pendingDone = res;
     // Bazı telefonlarda konuşma bitti haberi gelmiyor: tahmini süre dolunca yine de devam et
-    const guard = window.setTimeout(() => res(), 2500 + text.length * 95 / Math.max(0.5, rate));
+    const guard = window.setTimeout(() => res(), 4000 + text.length * 120 / Math.max(0.4, rate)); // geç bitsin: erken açılan mikrofon Loki'nin sesini yakalamasın
     native.speak!(text, s.accent, rate).catch(() => null).finally(() => { clearTimeout(guard); res(); });
   });
   if (!("speechSynthesis" in window)) return;
@@ -260,7 +260,8 @@ export class Listener {
       const an = ac.createAnalyser(); an.fftSize = 1024;
       ac.createMediaStreamSource(this.stream).connect(an);
       const buf = new Float32Array(an.fftSize);
-      let loud = 0, quietSince = Date.now(), floor = 0.003;
+      let loud = 0, quietSince = Date.now(), floor = 0.003, spokeAt = 0;
+      const calib: number[] = []; // ilk ~0,5 sn: ortam gürültüsünü ölç (vantilatör, sokak sesi…)
       this.ac = ac;
       this.iv = window.setInterval(() => {
         const now = Date.now();
@@ -269,12 +270,14 @@ export class Listener {
           let sum = 0; for (const v of buf) sum += v * v;
           const rms = Math.sqrt(sum / buf.length);
           if (rms > 0) this.watched = true;
-          const thr = Math.max(0.007, Math.min(0.03, floor * 3));
-          if (rms > thr) { loud++; quietSince = now; if (loud >= 2 && !this.spoke) { this.spoke = true; this.onPartial?.("🎙️ …"); } }
-          else { floor = floor * 0.9 + rms * 0.1; if (now - quietSince > 400) loud = 0; }
+          if (now - start < 500) { calib.push(rms); if (calib.length >= 4) floor = Math.max(floor, [...calib].sort((a, b) => a - b)[Math.floor(calib.length / 2)]); return; }
+          const thr = Math.max(0.008, Math.min(0.06, floor * 2.8));
+          if (rms > thr) { loud++; quietSince = now; if (loud >= 2 && !this.spoke) { this.spoke = true; spokeAt = now; this.onPartial?.("🎙️ …"); } }
+          else { floor = floor * 0.92 + rms * 0.08; if (now - quietSince > 400) loud = 0; }
         }
         const stop = this.watched
-          ? (this.spoke && now - quietSince > 2500) || (!this.spoke && now - start > 30000)
+          // konuştuysan 2,2 sn susunca gönder; sürekli gürültü varsa en geç 20 sn'de gönder; hiç konuşmadıysan 30 sn bekle
+          ? (this.spoke && now - quietSince > 2200) || (this.spoke && now - spokeAt > 20000) || (!this.spoke && now - start > 30000)
           : now - start > 15000;
         if (stop) { this.stopWatch(); onAutoStop(); }
       }, 100);

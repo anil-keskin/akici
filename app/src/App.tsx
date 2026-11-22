@@ -2,7 +2,7 @@ import { motion } from "motion/react";
 import { lazy, Suspense, useEffect, type ComponentType } from "react";
 import {
   Home as HomeI, BookOpen, Repeat, GraduationCap, Quote, Headphones, Mic, BookMarked, Theater, MessageCircle,
-  BarChart3, Settings as SetI, LayoutGrid, Library, Clapperboard, Compass, ChevronLeft, ChevronRight, Dices,
+  BarChart3, Settings as SetI, LayoutGrid, Library, Clapperboard, Compass, ChevronLeft, ChevronRight, Dices, Sparkles,
 } from "lucide-react";
 import { back, go, useRoute } from "./lib/router";
 import { SelectTranslate } from "./components/SelectTranslate";
@@ -34,6 +34,7 @@ const pages: Record<string, ReturnType<typeof P>> = {
   "/rastgele": P(() => import("./pages/Random")),
   "/pratik": P(() => import("./pages/AIPractice")),
   "/yol": P(() => import("./pages/Track")),
+  "/oyun": P(() => import("./pages/Games")),
   "/senaryolar": P(() => import("./pages/Scenarios")),
   "/sohbet": P(() => import("./pages/Chat")),
   "/ilerleme": P(() => import("./pages/Progress")),
@@ -60,6 +61,7 @@ const NAV = [
   { to: "/senaryolar", label: "Senaryolar", icon: Theater },
   { sec: "Keşfet" },
   { to: "/kesfet", label: "Keşfet", icon: Compass },
+  { to: "/oyun", label: "Oyunlar", icon: Sparkles },
   { to: "/medya", label: "Podcast, şarkı & dizi", icon: Clapperboard },
   { to: "/rastgele", label: "Rastgele", icon: Dices },
   { sec: "Sen" },
@@ -68,13 +70,13 @@ const NAV = [
 ] as const;
 const TITLES: Record<string, string> = Object.fromEntries([
   ...NAV.filter((n) => "to" in n).map((n) => [(n as { to: string }).to, (n as { label: string }).label]),
-  ["/ogren", "Öğren"], ["/test", "Seviye testi"], ["/yol", "Kategori"], ["/pratik", "Loki alıştırma"],
+  ["/ogren", "Öğren"], ["/test", "Seviye testi"], ["/yol", "Kategori"], ["/pratik", "Loki alıştırma"], ["/oyun", "Oyunlar"],
 ]);
-const DISCOVER: [string, string][] = [["/kesfet", "Oku"], ["/medya", "İzle & dinle"], ["/rastgele", "Rastgele"]];
+const DISCOVER: [string, string][] = [["/kesfet", "Oku"], ["/oyun", "Oyunlar"], ["/medya", "İzle"], ["/rastgele", "Rastgele"]];
 const TABS = [
   { to: "/", label: "Bugün", icon: HomeI, match: ["/", "/ders", "/tekrar"] },
   { to: "/ogren", label: "Öğren", icon: LayoutGrid, match: ["/ogren", "/yol", "/pratik", "/kelimeler", "/gramer", "/kaliplar", "/okuma", "/konusma", "/dinleme", "/senaryolar"] },
-  { to: "/kesfet", label: "Keşfet", icon: Compass, match: ["/kesfet", "/medya", "/rastgele"] },
+  { to: "/kesfet", label: "Keşfet", icon: Compass, match: ["/kesfet", "/oyun", "/medya", "/rastgele"] },
   { to: "/sohbet", label: "Loki", icon: MessageCircle, match: ["/sohbet"] },
   { to: "/ilerleme", label: "Sen", icon: BarChart3, match: ["/ilerleme", "/ayarlar", "/test"] },
 ];

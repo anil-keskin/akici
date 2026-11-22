@@ -30,6 +30,16 @@ const AI_CATS = [
   { k: "sport", label: "⚽ Spor", en: "sports (history of a sport, a famous match or record)" },
   { k: "money", label: "💼 İş & para", en: "business, famous companies or how money works (no financial advice)" },
   { k: "life", label: "😄 Günlük hayat", en: "everyday life situations with useful expressions" },
+  { k: "psych", label: "🧠 İlginç psikoloji", en: "a surprising psychology fact or famous experiment (general, accurate)" },
+  { k: "movies", label: "🎬 Film & dizi dünyası", en: "the story behind a famous movie or TV series (behind the scenes, trivia)" },
+  { k: "music", label: "🎵 Müzik", en: "the history of a famous song, band or music genre" },
+  { k: "cities", label: "🏙️ Şehirler", en: "a famous city: its history, food and secrets" },
+  { k: "inventions", label: "💡 İcatlar", en: "how a famous everyday invention was created" },
+  { k: "records", label: "🏆 Rekorlar", en: "an amazing world record or extreme fact" },
+  { k: "mystery", label: "🕵️ Gizemler", en: "a famous historical mystery (no violence, family-friendly)" },
+  { k: "jokes", label: "😂 Espri & fıkra", en: "a few clean, funny English jokes and puns, each explained simply so a learner gets the wordplay" },
+  { k: "speeches", label: "🎤 Ünlü sözler", en: "a famous inspiring quote or speech and the story behind it" },
+  { k: "hacks", label: "🧰 Hayat tüyoları", en: "useful everyday life hacks and tips" },
 ];
 const decode = (t: string) => { const e = document.createElement("textarea"); e.innerHTML = t; return e.value; };
 const strip = (h: string) => decode(h.replace(/<!--.*?-->/g, "").replace(/<[^>]+>/g, "")).replace(/\s+/g, " ").trim();
@@ -71,6 +81,22 @@ async function randomWiki(lv: string, n = 10): Promise<Item[]> {
   }));
 }
 
+const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+/** Vikipedi "Did you know" arşivi: rastgele bir ayın bilgilerinden 20 tane */
+async function dykArchive(): Promise<Item[]> {
+  for (let tries = 0; tries < 3; tries++) {
+    const y = 2012 + Math.floor(Math.random() * 14), m = MONTHS[Math.floor(Math.random() * 12)];
+    const r = await fetch(`https://en.wikipedia.org/w/api.php?action=parse&page=${encodeURIComponent(`Wikipedia:Did_you_know_archive/${y}/${m}`)}&prop=text&format=json&formatversion=2&redirects=1&origin=*`);
+    if (!r.ok) continue;
+    const h: string = (await r.json())?.parse?.text || "";
+    const all = [...h.matchAll(/<li>([\s\S]*?)<\/li>/g)].map((x) => strip(x[1])).filter((t) => /^(\.\.\.|…)/.test(t) && t.length < 320);
+    if (all.length < 5) continue;
+    const pick = all.sort(() => Math.random() - 0.5).slice(0, 20);
+    return pick.map((t, i) => ({ id: `dk${y}${m}${i}`, cat: "dyk", title: t.replace(/^(\.\.\.|…)\s*(that\s*)?/, "…").replace(/\s*\(pictured\)/g, "").slice(0, 90), paras: ["Did you know " + t.replace(/^(\.\.\.|…)\s*(that\s*)?/, "that ").replace(/\s*\(pictured\)/g, "")], src: `Wikipedia · Did you know (${m} ${y})` }));
+  }
+  throw new Error("Bilgiler alınamadı, tekrar dene.");
+}
+
 /** Uzay haberleri (Spaceflight News API, ücretsiz/anahtarsız); her yenilemede farklı sayfa */
 async function spaceNews(page: number): Promise<Item[]> {
   const r = await fetch(`https://api.spaceflightnewsapi.net/v4/articles/?limit=12&offset=${page * 12}`);
@@ -99,6 +125,14 @@ export default function Explore({ id }: { id?: string; params: URLSearchParams }
     try {
       if (c === "random") { const r = await randomWiki(lv); cache.set(c, r); setItems(r); return; }
       if (c === "spacenews") { const p = fresh ? Math.floor(Math.random() * 40) : 0; setSpage(p); const r = await spaceNews(p); cache.set(c, r); setItems(r); return; }
+      if (c === "dyk") {
+        // Bugünün "Did you know"ları; yoksa ya da "Başka getir"de Vikipedi arşivinden rastgele bir ay (ayda ~300 bilgi)
+        setDay(0);
+        let r: Item[] = [];
+        if (!fresh) { try { const f = await wikiFeed(0); for (const k in f) cache.set(k, f[k]); r = f.dyk; } catch { /* arşive geç */ } }
+        if (!r.length) r = await dykArchive();
+        cache.set(c, r); setItems(r); return;
+      }
       if (WIKI_CATS.some((w) => w.k === c)) {
         // Gündem için yakın geçmiş (son 60 gün), diğerleri için son ~2 yıl
         const dd = fresh ? 1 + Math.floor(Math.random() * (c === "news" ? 60 : 700)) : 0; setDay(dd);
@@ -191,7 +225,7 @@ export default function Explore({ id }: { id?: string; params: URLSearchParams }
       )}
       {!AI_CATS.some((a) => a.k === cat) && (
         <div className="row wrap" style={{ gap: 8, marginBottom: 14 }}>
-          <button className="btn primary grow" disabled={items === null} onClick={() => loadCat(cat, true)}><RefreshCw size={16} /> {cat === "random" ? "Başka rastgele bilgiler" : cat === "spacenews" ? "Başka haberler" : "Başka bir günden getir"}</button>
+          <button className="btn primary grow" disabled={items === null} onClick={() => loadCat(cat, true)}><RefreshCw size={16} /> {cat === "random" ? "Başka rastgele bilgiler" : cat === "spacenews" ? "Başka haberler" : cat === "dyk" ? "Başka ilginç bilgiler" : "Başka bir günden getir"}</button>
           {cat !== "random" && cat !== "spacenews" && day > 0 && <button className="btn ghost" onClick={() => loadCat(cat, false)}>Bugüne dön</button>}
         </div>
       )}
