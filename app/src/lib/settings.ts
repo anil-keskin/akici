@@ -21,7 +21,7 @@ export interface Settings {
   sfx: boolean;
 }
 export const DEFAULTS: Settings = {
-  theme: "auto", accent: "en-US", voiceURI: "", rate: 1, stt: "auto", server: "", serverToken: "",
+  theme: "light", accent: "en-US", voiceURI: "", rate: 1, stt: "auto", server: "", serverToken: "",
   aiProvider: "local", aiModel: "qwen3:8b", aiBase: "https://api.openai.com/v1", aiKey: "", showVulgar: false,
   dailyNew: 15, goalXp: 50, autoplay: true, trHints: true, sfx: true,
 };
@@ -40,6 +40,8 @@ export async function loadSettings() {
     current = { ...current, aiProvider: "akici", aiModel: "akici" };
     if (s.aiProvider) await kvSet("settings", current);
   }
+  // v2.3: koyu tema boğucu bulundu → telefonun koyu modunu otomatik izlemek yerine açık tema varsayılan
+  if (current.theme === "auto" && !(await kvGet("themeV3", false))) { current = { ...current, theme: "light" }; await kvSet("settings", current); await kvSet("themeV3", true); }
   applyTheme();
   return current;
 }
@@ -60,4 +62,6 @@ function applyTheme() {
   const el = document.documentElement;
   if (current.theme === "auto") el.removeAttribute("data-theme");
   else el.setAttribute("data-theme", current.theme);
+  const dark = current.theme === "dark" || (current.theme === "auto" && matchMedia("(prefers-color-scheme: dark)").matches);
+  document.querySelector('meta[name="theme-color"]')?.setAttribute("content", dark ? "#1e1d33" : "#f5f6fb");
 }

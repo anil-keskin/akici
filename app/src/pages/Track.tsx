@@ -1,6 +1,7 @@
 // Kategori yolu: dersler dikey bir yolda. Düğüme dokun → Ders (alıştırma) / Kelimeler / Konuş (Loki ile canlandırma).
 // Kilit yok: istediğin derse atlayabilirsin; yol sadece önerilen sırayı ve ilerlemeni gösterir.
 import { useEffect, useState } from "react";
+import { TrackIcon } from "../components/TrackIcon";
 import { motion } from "motion/react";
 import { ArrowLeft, Check, Star, Sparkles, BookOpen, MessageCircle } from "lucide-react";
 import { Bar, Lv, Sheet } from "../components/ui";
@@ -26,7 +27,7 @@ export default function TrackPage({ id }: { id?: string }) {
       <button className="btn ghost sm" style={{ alignSelf: "flex-start" }} onClick={() => go("/ogren")}><ArrowLeft size={16} /> Öğren</button>
       <div className={`card col track-head ${t.color}`} style={{ gap: 10 }}>
         <div className="row" style={{ gap: 12 }}>
-          <div className="track-emoji">{t.emoji}</div>
+          <div className="track-emoji"><TrackIcon id={t.id} /></div>
           <div style={{ minWidth: 0 }}><h1 className="h2" style={{ margin: 0 }}>{t.title}</h1><div className="small muted">{t.sub}</div></div>
         </div>
         <div className="row between small" style={{ fontWeight: 700 }}><span>{n} / {t.units.length} ders</span><span>{Math.round((n / t.units.length) * 100)}%</span></div>
@@ -95,7 +96,7 @@ export function TrackGrid({ done }: { done: Set<string> }) {
         const n = t.units.filter((un) => done.has(unitPid(un))).length;
         return (
           <button key={t.id} className={`track-card ${t.color}`} onClick={() => go(`/yol/${t.id}`)}>
-            <span className="track-emoji">{t.emoji}</span>
+            <span className="track-emoji"><TrackIcon id={t.id} /></span>
             <b>{t.title}</b>
             <span className="small muted">{t.sub}</span>
             <span className="track-prog"><i style={{ width: `${(n / t.units.length) * 100}%` }} /></span>

@@ -70,7 +70,7 @@ const TITLES: Record<string, string> = Object.fromEntries([
   ...NAV.filter((n) => "to" in n).map((n) => [(n as { to: string }).to, (n as { label: string }).label]),
   ["/ogren", "Öğren"], ["/test", "Seviye testi"], ["/yol", "Kategori"], ["/pratik", "Loki alıştırma"],
 ]);
-const DISCOVER: [string, string][] = [["/kesfet", "📰 Oku"], ["/medya", "🎧 İzle & dinle"], ["/rastgele", "🎲 Rastgele"]];
+const DISCOVER: [string, string][] = [["/kesfet", "Oku"], ["/medya", "İzle & dinle"], ["/rastgele", "Rastgele"]];
 const TABS = [
   { to: "/", label: "Bugün", icon: HomeI, match: ["/", "/ders", "/tekrar"] },
   { to: "/ogren", label: "Öğren", icon: LayoutGrid, match: ["/ogren", "/yol", "/pratik", "/kelimeler", "/gramer", "/kaliplar", "/okuma", "/konusma", "/dinleme", "/senaryolar"] },

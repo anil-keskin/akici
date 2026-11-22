@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Flame, Repeat, Sparkles, Trophy, Cloud, MessageCircle, Dices } from "lucide-react";
+import { TrackIcon } from "../components/TrackIcon";
 import { motion } from "motion/react";
 import { LokiBuddy, CountUp } from "../components/fx";
 import { AudioBtn, Lv, Mascot } from "../components/ui";
@@ -76,13 +77,13 @@ export default function Home() {
 
       <div className="quick">
         <button onClick={() => go("/tekrar")}>{st.due > 0 && <span className="badge">{st.due}</span>}<Repeat size={24} color="var(--sky)" />Tekrar</button>
-        <button onClick={() => go("/sohbet")}><MessageCircle size={24} color="var(--mint)" />Loki ile konuş</button>
+        <button onClick={() => go("/sohbet")}><MessageCircle size={24} color="var(--mint)" />Konuş</button>
         <button onClick={() => go("/rastgele")}><Dices size={24} color="var(--amber)" />Rastgele</button>
       </div>
 
       {last ? (
         <button className={`track-card ${last.color}`} style={{ flexDirection: "row", alignItems: "center", gap: 12 }} onClick={() => go(`/yol/${last.id}`)}>
-          <span className="track-emoji">{last.emoji}</span>
+          <span className="track-emoji"><TrackIcon id={last.id} /></span>
           <span className="col grow" style={{ gap: 2, minWidth: 0 }}>
             <span className="tiny muted" style={{ fontWeight: 800, letterSpacing: ".05em" }}>KALDIĞIN KATEGORİ</span>
             <b>{last.title}</b>
@@ -96,7 +97,7 @@ export default function Home() {
       <div className="scroll-x" style={{ gap: 10 }}>
         {TRACKS.slice(0, 6).map((t) => (
           <button key={t.id} className={`track-card ${t.color}`} style={{ minWidth: 150, maxWidth: 150 }} onClick={() => go(`/yol/${t.id}`)}>
-            <span className="track-emoji">{t.emoji}</span><b>{t.title}</b>
+            <span className="track-emoji"><TrackIcon id={t.id} /></span><b>{t.title}</b>
           </button>
         ))}
       </div>
