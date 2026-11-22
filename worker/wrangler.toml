@@ -4,17 +4,17 @@ main = "src/index.js"
 compatibility_date = "2026-11-01"
 workers_dev = true
 
-# IP başına dakikada en fazla 12 istek (kötüye kullanıma karşı)
+# IP başına dakikada en fazla 40 istek (evde 2 kişi + otomatik çeviri) (kötüye kullanıma karşı)
 [[ratelimits]]
 name = "PER_IP"
 namespace_id = "1001"
-simple = { limit = 12, period = 60 }
+simple = { limit = 40, period = 60 }
 
-# Cihaz başına dakikada en fazla 8 istek
+# Cihaz başına dakikada en fazla 25 istek
 [[ratelimits]]
 name = "PER_DEVICE"
 namespace_id = "1002"
-simple = { limit = 8, period = 60 }
+simple = { limit = 25, period = 60 }
 
 [observability]
 enabled = false

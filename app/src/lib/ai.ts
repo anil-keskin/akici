@@ -78,14 +78,22 @@ async function raw(messages: Msg[], maxTokens: number, json: boolean): Promise<s
   }
   if (s.aiProvider === "akici") {
     if (!AKICI_AI) throw new Error("Loki AI henüz açılmadı. Ayarlar → Yapay zekâ'dan başka bir sağlayıcı seç.");
-    const r = await fetch(`${AKICI_AI}/chat`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", "X-Akici-Device": deviceId() },
-      body: JSON.stringify({ messages: messages.map((m) => ({ role: m.role, content: m.content.slice(0, 6000) })).slice(-30), max_tokens: maxTokens, json }),
-    });
-    const d = await r.json().catch(() => ({}));
-    if (!r.ok) throw new Error(d.error ? `Loki AI: ${d.error}` : `Loki AI hatası ${r.status}`);
-    return d.content || "";
+    const body = JSON.stringify({ messages: messages.map((m) => ({ role: m.role, content: m.content.slice(0, 6000) })).slice(-30), max_tokens: maxTokens, json });
+    // Ağ kopması / anlık yoğunlukta 2 kez daha dene (kullanıcı "cevap vermiyor" görmesin)
+    let last = "";
+    for (let i = 0; i < 3; i++) {
+      if (i) await new Promise((r) => setTimeout(r, i * 1500));
+      const ctl = new AbortController(); const to = setTimeout(() => ctl.abort(), 25000);
+      try {
+        const r = await fetch(`${AKICI_AI}/chat`, { method: "POST", headers: { "Content-Type": "application/json", "X-Akici-Device": deviceId() }, body, signal: ctl.signal });
+        const d = await r.json().catch(() => ({}));
+        if (r.ok && (d.content || "").trim()) return d.content;
+        last = d.error ? `Loki AI: ${d.error}` : r.ok ? "Loki AI boş cevap verdi" : `Loki AI hatası ${r.status}`;
+        if (r.status === 400 || r.status === 413) break;
+      } catch (e) { last = (e as Error).name === "AbortError" ? "Loki AI geç cevap verdi (internet yavaş olabilir)" : "İnternet bağlantısı yok gibi"; }
+      finally { clearTimeout(to); }
+    }
+    throw new Error(last);
   }
   if (!s.aiKey) throw new Error("API anahtarı girilmemiş (Ayarlar → Yapay zekâ).");
   if (s.aiProvider === "openai") {

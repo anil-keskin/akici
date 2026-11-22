@@ -108,8 +108,10 @@ export default function Chat({ params }: { params: URLSearchParams }) {
       await say(MODES[mode].json ? line.content : line.content.split("\n").filter((l) => !/[çğışöüÇĞİŞÖÜ]/.test(l)).join(" ").slice(0, 500));
       if (callRef.current && !hush.current) startListening();
     } catch (e) {
-      setErr((e as Error).message);
+      setErr((e as Error).message + (callRef.current ? " · Tekrar söyleyebilirsin." : ""));
       setBusy(false);
+      setLines(next); setV(t); // mesaj kaybolmasın: yazı kutusunda dursun
+      if (callRef.current) startListening(); // sesli sohbet takılı kalmasın
     }
   };
 
@@ -125,17 +127,21 @@ export default function Chat({ params }: { params: URLSearchParams }) {
     if (!cur) return;
     lis.current = null; // ikinci kez durdurulmasın (sessizlik + düğme aynı anda)
     setRec(false);
+    setHeard("Yazıya çevriliyor…");
     const h = await cur.stop().catch((e) => { setErr((e as Error).message); return null; });
+    if (!h && callRef.current && misses.current < 2) { misses.current++; setHeard(""); startListening(); return; }
     setHeard("");
     if (h?.text) { misses.current = 0; send(h.text); return; }
     // Sesli sohbette sessiz kaldıysan acele etme: dinlemeye devam et (yaklaşık 1,5 dk), sonra bekle
     if (callRef.current && h && misses.current < 2) { misses.current++; startListening(); return; }
     misses.current = 0;
-    if (callRef.current) setErr("Seni bekliyorum. Hazır olunca mikrofona bas.");
+    setErr(callRef.current ? "Seni bekliyorum. Hazır olunca mikrofona bas." : h ? "Ses gelmedi. Mikrofona biraz daha yakın ve net konuş." : "");
   }
   const toggleCall = async () => {
     if (call) { callRef.current = false; setCall(false); stopSpeaking(); lis.current?.cancel(); lis.current = null; setRec(false); return; }
-    callRef.current = true; setCall(true); setTts(true);
+    // Mikrofon onayını en başta al (Loki selam verdikten sonra pencere çıkıp beklemesin)
+    if (!(await request())) return;
+    callRef.current = true; setCall(true); setTts(true); setErr("");
     if (!lines.length) send(mode === "roleplay" ? "Hello!" : "Hi!");
     else startListening();
   };
@@ -157,7 +163,7 @@ export default function Chat({ params }: { params: URLSearchParams }) {
         <Avatar p={persona} talking={talking} listening={rec} size={96} />
         <div className="grow" style={{ minWidth: 160 }}>
           <div className="h3">{persona.name} <span className="muted small">· {sc ? sc.ai : persona.role}</span></div>
-          <div className="muted small">{rec ? "Dinliyorum… bitince ■ düğmesine bas." : talking ? "Konuşuyor… (susturmak için Sustur ya da mikrofona bas)" : busy ? "Düşünüyor…" : call ? "Sesli sohbet açık" : "Yaz ya da sesli sohbeti başlat."}</div>
+          <div className="muted small">{rec ? (call ? "Dinliyorum… konuş, susunca kendim gönderirim." : "Dinliyorum… bitince ■ düğmesine bas.") : heard ? heard : talking ? "Konuşuyor… (susturmak için Sustur ya da mikrofona bas)" : busy ? "Düşünüyor…" : call ? "Sesli sohbet açık" : "Yaz ya da sesli sohbeti başlat."}</div>
           {rec && heard && <div className="small" style={{ marginTop: 4, fontStyle: "italic" }}>“{heard}”</div>}
           {err && <div className="small" style={{ marginTop: 4, color: "var(--coral)", fontWeight: 600 }}>⚠️ {err}</div>}
           {talking && <button className="btn sm coral" style={{ marginTop: 8 }} onClick={shush}><VolumeX size={15} /> Sustur</button>}

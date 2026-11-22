@@ -126,6 +126,24 @@ export function browserSTT(): boolean { return !!((window as any).SpeechRecognit
 
 export async function micAvailable() { return !!navigator.mediaDevices?.getUserMedia; }
 
+/** Sesi Loki sunucusu üzerinden Groq Whisper'a gönderip yazıya çevirir (2 deneme) */
+async function cloudStt(blob: Blob): Promise<string> {
+  const { AKICI_AI } = await import("./ai");
+  let dev = "anon"; try { dev = localStorage.getItem("akici-device") || "anon"; } catch { /* */ }
+  let last: Error = new Error("Ses tanınamadı");
+  for (let i = 0; i < 2; i++) {
+    try {
+      const r = await fetch(`${AKICI_AI}/stt`, { method: "POST", headers: { "Content-Type": (blob.type || "audio/webm").split(";")[0], "X-Akici-Device": dev }, body: blob, signal: AbortSignal.timeout(20000) });
+      const d = await r.json().catch(() => ({}));
+      if (r.ok) return String(d.text || "").trim();
+      last = new Error(d.error ? `Ses tanıma: ${d.error}` : `Ses tanıma hatası ${r.status}`);
+      if (r.status === 413 || r.status === 415) break;
+    } catch { last = new Error("Ses gönderilemedi (internet?)"); }
+    await new Promise((r) => setTimeout(r, 1200));
+  }
+  throw last;
+}
+
 export class Listener {
   private rec: MediaRecorder | null = null;
   private chunks: Blob[] = [];
@@ -143,8 +161,9 @@ export class Listener {
     const h = s.stt === "browser" ? { ok: false } : await health();
     this.engine = h.ok && (h as Health).whisper && !/kapalı|yok|error/i.test(String((h as Health).whisper)) ? "whisper" : native.listen ? "native" : "browser";
     if (s.stt === "whisper" && this.engine !== "whisper") throw new Error("Whisper sunucusu açık değil. Ayarlar → Sunucu.");
-    // Telefonda (ya da tarayıcı tanıması yoksa): sesi kaydet, Loki sunucusunda Whisper ile yazıya çevir. Google penceresi yok.
-    if (this.engine === "native" || (this.engine === "browser" && !browserSTT())) {
+    // Yerel Whisper yoksa her yerde (telefon + bilgisayar) aynı yol: sesi kaydet, Loki sunucusunda Whisper ile yazıya çevir.
+    // Sessizliği kendisi algılar, Google penceresi yok. Sadece ayarda açıkça "Tarayıcı" seçilirse tarayıcı tanıması kullanılır.
+    if (this.engine !== "whisper" && !(s.stt === "browser" && browserSTT())) {
       const { AKICI_AI } = await import("./ai");
       if (AKICI_AI && typeof navigator.mediaDevices?.getUserMedia === "function") this.engine = "cloud";
     }
@@ -177,7 +196,7 @@ export class Listener {
     this.rec.ondataavailable = (e) => e.data.size && this.chunks.push(e.data);
     this.rec.start();
     this.t0 = Date.now();
-    if (this.engine === "cloud") this.watchSilence(onAutoStop);
+    if (this.engine === "cloud" || this.engine === "whisper") this.watchSilence(onAutoStop);
     if (this.engine === "browser") {
       const C = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
       if (C) {
@@ -195,24 +214,36 @@ export class Listener {
   private ac: AudioContext | null = null;
   private iv: number | undefined;
   private spoke = false;
-  private watched = false;
-  /** Konuşma başlayıp 2,5 sn susunca (ya da 30 sn hiç konuşma gelmezse) otomatik bitir. Kısa tık/gürültü konuşma sayılmaz. */
+  private watched = false; // ses seviyesi gerçekten ölçülebildi mi
+  /** Konuşma başlayıp 2,5 sn susunca (ya da 30 sn hiç konuşma gelmezse) otomatik bitir.
+   *  Eşik ortam gürültüsüne göre ayarlanır (telefon mikrofonları çok kısık olabiliyor). Ölçüm yapılamazsa 15 sn sonra gönderir. */
   private watchSilence(onAutoStop?: () => void) {
     if (!this.stream || !onAutoStop) return;
+    this.watched = false; this.spoke = false;
+    const start = Date.now();
     try {
       const ac = new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)();
+      if (ac.state !== "running") ac.resume().catch(() => null);
       const an = ac.createAnalyser(); an.fftSize = 1024;
       ac.createMediaStreamSource(this.stream).connect(an);
       const buf = new Float32Array(an.fftSize);
-      let loud = 0, quietSince = Date.now(); const start = Date.now();
-      this.ac = ac; this.watched = true; this.spoke = false;
+      let loud = 0, quietSince = Date.now(), floor = 0.003;
+      this.ac = ac;
       this.iv = window.setInterval(() => {
-        an.getFloatTimeDomainData(buf);
-        let sum = 0; for (const v of buf) sum += v * v;
-        const rms = Math.sqrt(sum / buf.length);
-        if (rms > 0.02) { loud++; quietSince = Date.now(); if (loud >= 3 && !this.spoke) { this.spoke = true; this.onPartial?.("🎙️ …"); } }
-        else if (Date.now() - quietSince > 400) loud = 0;
-        if ((this.spoke && Date.now() - quietSince > 2500) || (!this.spoke && Date.now() - start > 30000)) { this.stopWatch(); onAutoStop(); }
+        const now = Date.now();
+        if (ac.state === "running") {
+          an.getFloatTimeDomainData(buf);
+          let sum = 0; for (const v of buf) sum += v * v;
+          const rms = Math.sqrt(sum / buf.length);
+          if (rms > 0) this.watched = true;
+          const thr = Math.max(0.007, Math.min(0.03, floor * 3));
+          if (rms > thr) { loud++; quietSince = now; if (loud >= 2 && !this.spoke) { this.spoke = true; this.onPartial?.("🎙️ …"); } }
+          else { floor = floor * 0.9 + rms * 0.1; if (now - quietSince > 400) loud = 0; }
+        }
+        const stop = this.watched
+          ? (this.spoke && now - quietSince > 2500) || (!this.spoke && now - start > 30000)
+          : now - start > 15000;
+        if (stop) { this.stopWatch(); onAutoStop(); }
       }, 100);
     } catch { /* ses analizi yok: süre sınırı yeter */ }
   }
@@ -239,19 +270,17 @@ export class Listener {
     const audioUrl = URL.createObjectURL(blob);
     addStat({ speakSec: Math.round((Date.now() - this.t0) / 1000) });
     this.stopWatch();
-    if (this.engine === "cloud") {
-      // Hiç konuşulmadıysa gönderme: Whisper sessizlikte "Thank you." gibi şeyler uydurur
-      if (blob.size < 2000 || (this.watched && !this.spoke)) return { text: "", audioUrl, engine: "cloud" };
-      const { AKICI_AI } = await import("./ai");
-      let dev = "anon"; try { dev = localStorage.getItem("akici-device") || "anon"; } catch { /* */ }
-      const r = await fetch(`${AKICI_AI}/stt`, { method: "POST", headers: { "Content-Type": (blob.type || "audio/webm").split(";")[0], "X-Akici-Device": dev }, body: blob });
-      const d = await r.json().catch(() => ({}));
-      if (!r.ok) throw new Error(d.error ? `Ses tanıma: ${d.error}` : `Ses tanıma hatası ${r.status}`);
-      return { text: String(d.text || ""), audioUrl, engine: "cloud" };
-    }
+    // Hiç konuşulmadıysa gönderme: Whisper sessizlikte "Thank you." gibi şeyler uydurur
+    if ((this.engine === "cloud" || this.engine === "whisper") && (blob.size < 2000 || (this.watched && !this.spoke))) return { text: "", audioUrl, engine: this.engine };
+    if (this.engine === "cloud") return { text: await cloudStt(blob), audioUrl, engine: "cloud" };
     if (this.engine === "whisper") {
-      const r = await serverPost<{ text: string; words: { w: string; p: number }[] }>("/api/score", blob, false);
-      return { text: r.text, words: r.words, audioUrl, engine: "whisper" };
+      try {
+        const r = await serverPost<{ text: string; words: { w: string; p: number }[] }>("/api/score", blob, false);
+        return { text: r.text, words: r.words, audioUrl, engine: "whisper" };
+      } catch (e) {
+        // Bilgisayardaki Whisper hata verdiyse buluttakine geç (kullanıcı takılı kalmasın)
+        try { return { text: await cloudStt(blob), audioUrl, engine: "cloud" }; } catch { throw e; }
+      }
     }
     if (this.sr) {
       await new Promise((res) => { this.sr!.onend = () => res(null); try { this.sr!.stop(); } catch { res(null); } setTimeout(res, 1500); });
