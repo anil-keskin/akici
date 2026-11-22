@@ -62,8 +62,8 @@ export function Intro({ w, example, onDone }: ExProps & { w: Word; example?: [st
 }
 
 // ------------------------------------------------------------------ Çoktan seçmeli
-export function Choice({ prompt, sub, options, answer, audio, onDone, hint }: ExProps & {
-  prompt: ReactNode; sub?: ReactNode; options: string[]; answer: string; audio?: string; hint?: string;
+export function Choice({ prompt, sub, options, answer, audio, onDone, hint, why }: ExProps & {
+  prompt: ReactNode; sub?: ReactNode; options: string[]; answer: string; audio?: string; hint?: string; why?: ReactNode;
 }) {
   const [picked, setPicked] = useState<string | null>(null);
   const opts = useMemo(() => shuffle(Array.from(new Set([answer, ...options])).slice(0, 4)), [answer, options]);
@@ -88,7 +88,7 @@ export function Choice({ prompt, sub, options, answer, audio, onDone, hint }: Ex
         ))}
       </div>
       {hint && !picked && <div className="muted small row" style={{ justifyContent: "center" }}><Lightbulb size={14} /> {hint}</div>}
-      <Feedback r={r} answer={r === "bad" ? answer : undefined} onNext={() => onDone(r!)} />
+      <Feedback r={r} answer={r === "bad" ? answer : undefined} extra={why} onNext={() => onDone(r!)} />
     </div>
   );
 }

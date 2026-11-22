@@ -152,8 +152,17 @@ export function StepView({ step, onDone }: { step: Step; onDone: (r: Result) => 
     case "gram": {
       const [before, after = ""] = step.q.split("___");
       return step.ch?.length
-        ? <Choice prompt={<><div className="muted small" style={{ marginBottom: 8 }}>Gramer · {step.topic}</div><ClozeLine before={before} after={after} /></>} sub={step.tr} options={step.ch} answer={step.a} hint={step.h} onDone={onDone} />
-        : <Typing prompt={<><div className="muted small" style={{ marginBottom: 8 }}>Gramer · {step.topic}</div><ClozeLine before={before} after={after} /><div className="muted" style={{ marginTop: 8 }}>{step.tr}{step.h ? ` · ipucu: ${step.h}` : ""}</div></>} answers={[step.a]} onDone={onDone} extra={before + step.a + after} />;
+        ? <Choice prompt={<><div className="muted small" style={{ marginBottom: 8 }}>Gramer · {step.topic}</div><ClozeLine before={before} after={after} /></>} sub={step.tr} options={step.ch} answer={step.a} hint={step.h} why={step.why && <WhyNote t={step.why} full={before + step.a + after} />} onDone={onDone} />
+        : <Typing prompt={<><div className="muted small" style={{ marginBottom: 8 }}>Gramer · {step.topic}</div><ClozeLine before={before} after={after} /><div className="muted" style={{ marginTop: 8 }}>{step.tr}{step.h ? ` · ipucu: ${step.h}` : ""}</div></>} answers={[step.a]} onDone={onDone} extra={<>{before + step.a + after}{step.why && <div className="small muted">{step.why}</div>}</>} />;
     }
+    case "choice":
+      return <Choice prompt={<div className="h2" style={{ fontSize: 22 }}>{step.prompt}</div>} sub={step.tr} options={step.opts} answer={step.a} why={step.why && <WhyNote t={step.why} />} onDone={onDone} />;
+    case "write":
+      return <Typing prompt={<><div className="h3">İngilizceye çevir</div><div className="h2" style={{ marginTop: 6 }}>{step.tr}</div></>} answers={[step.a]} placeholder="İngilizcesini yaz…"
+        extra={<>Örnek doğru cevap: <b>{step.a}</b>{step.why && <div className="small muted">{step.why}</div>}<div className="small muted">Farklı ama doğru bir cümle yazdıysan sorun değil; anlam aynıysa kendini doğru say.</div></>} onDone={onDone} />;
   }
+}
+
+function WhyNote({ t, full }: { t: string; full?: string }) {
+  return <div className="small" style={{ marginTop: 4 }}>{full && <div style={{ fontWeight: 650 }}>{full}</div>}<span className="muted">💡 {t}</span></div>;
 }

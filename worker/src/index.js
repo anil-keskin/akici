@@ -295,7 +295,7 @@ export default {
       if (!m || !["system", "user", "assistant"].includes(m.role) || typeof m.content !== "string" || m.content.length > 6000) return json({ error: "geçersiz mesaj" }, 400);
       clean.push({ role: m.role, content: m.content });
     }
-    const maxTokens = Math.min(Math.max(Number(body.max_tokens) || 600, 50), 1200);
+    const maxTokens = Math.min(Math.max(Number(body.max_tokens) || 600, 50), 3000);
 
     const tried = [];
     // A planı: Groq (en hızlı; ücretsiz kota). Her modelin kotası ayrı, biri dolarsa sıradakine geç.

@@ -4,6 +4,7 @@ import {
   BarChart3, Settings as SetI, LayoutGrid, Library, Clapperboard, Compass, ChevronLeft, ChevronRight, Dices,
 } from "lucide-react";
 import { back, go, useRoute } from "./lib/router";
+import { SelectTranslate } from "./components/SelectTranslate";
 import { Mascot, Spinner, ToastHost, ConfettiHost, toast } from "./components/ui";
 import { kvGet } from "./lib/db";
 
@@ -29,6 +30,7 @@ const pages: Record<string, ReturnType<typeof P>> = {
   "/medya": P(() => import("./pages/Media")),
   "/kesfet": P(() => import("./pages/Explore")),
   "/rastgele": P(() => import("./pages/Random")),
+  "/pratik": P(() => import("./pages/AIPractice")),
   "/senaryolar": P(() => import("./pages/Scenarios")),
   "/sohbet": P(() => import("./pages/Chat")),
   "/ilerleme": P(() => import("./pages/Progress")),
@@ -122,6 +124,7 @@ export default function App() {
         </nav>
       )}
       <ToastHost />
+      <SelectTranslate />
       <ConfettiHost />
     </div>
   );

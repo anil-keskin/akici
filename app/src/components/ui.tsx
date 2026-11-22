@@ -1,6 +1,6 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { Volume2, Snail, Loader2, X, Mic, ShieldCheck } from "lucide-react";
-import { speak } from "../lib/speech";
+import { speak, stopSpeaking } from "../lib/speech";
 import { kvGet, kvSet } from "../lib/db";
 import { go } from "../lib/router";
 import { sfx } from "../lib/sfx";
@@ -41,7 +41,11 @@ export function Spinner({ label }: { label?: string }) {
 
 export function AudioBtn({ text, size = 20, slow = true, big = false }: { text: string; size?: number; slow?: boolean; big?: boolean }) {
   const [on, setOn] = useState(false);
-  const play = async (s = false) => { setOn(true); await speak(text, { slow: s }); setOn(false); };
+  // Çalarken tekrar basınca DURUR (baştan başlamaz)
+  const play = async (s = false) => {
+    if (on) { stopSpeaking(); setOn(false); return; }
+    setOn(true); await speak(text, { slow: s }); setOn(false);
+  };
   return (
     <span className="row" style={{ gap: 6, display: "inline-flex" }}>
       <button className={`btn icon ${big ? "primary" : ""}`} aria-label="Dinle" title="Dinle" onClick={(e) => { e.stopPropagation(); play(false); }}

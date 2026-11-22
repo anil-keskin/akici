@@ -10,6 +10,7 @@ import { alignWords, scoreOf } from "../lib/grade";
 import { addCard } from "../lib/srs";
 import { addStat } from "../lib/stats";
 import { usePersist } from "../lib/persist";
+import { go } from "../lib/router";
 import type { BookMeta } from "./Reading";
 
 export type RKind = "cumle" | "paragraf" | "kelime" | "kalip" | "karisik";
@@ -157,6 +158,12 @@ function RCard({ it, autoTr }: { it: Item; autoTr: boolean }) {
         <button className="btn sm ghost" onClick={() => speak(it.en, { slow: true })}><Snail size={15} /> Yavaş</button>
         <button className={`btn sm ${showTr ? "mint" : "ghost"}`} onClick={() => (showTr ? setShowTr(false) : doTr())}><Languages size={15} /> Türkçesi</button>
         <button className="btn sm ghost" onClick={explain}><Sparkles size={15} /> Loki açıklasın</button>
+        <button className="btn sm ghost" onClick={() => {
+          const k = it.kind === "kelime" ? "vocab" : it.kind === "kalip" ? "phrase" : it.kind === "paragraf" ? "reading" : "free";
+          if (k === "reading") { try { sessionStorage.setItem("pratik.text", it.en); } catch { /* */ } }
+          const t = it.kind === "cumle" ? `the sentence pattern of: "${it.en}"` : it.kind === "paragraf" ? (it.src || "this paragraph") : it.en;
+          go(`/pratik?k=${k}&lv=${it.lv || "B1"}&t=${encodeURIComponent(t.slice(0, 110))}&b=/rastgele`);
+        }}><Sparkles size={15} /> Bununla alıştırma</button>
         {it.card && <button className="btn sm ghost" disabled={added} onClick={async () => { await addCard(it.card!.kind, it.card!.id); setAdded(true); toast("Desteye eklendi"); }}>{added ? <Check size={15} /> : <Plus size={15} />} Desteye</button>}
       </div>
       <Repeat text={it.kind === "paragraf" ? it.en.split(/(?<=[.!?])\s+/)[0] : it.en} />

@@ -206,11 +206,11 @@ function LinePlayer({ title, sub, lines, back, video, audio, onDelete, onSaveTr,
     try { const t = await translateTr(lines[i].en); setLineTr((m) => ({ ...m, [i]: t })); }
     catch (e) { setLineTr((m) => ({ ...m, [i]: `Çevrilemedi: ${(e as Error).message}` })); }
   };
-  const stop = useRef(false);
+  const stop = useRef(0); // her oynatma kendi numarasıyla döner; durdurunca eskisi biter
   const frame = useRef<HTMLIFrameElement>(null);
   const vid = useRef<HTMLVideoElement>(null);
   const [localUrl, setLocalUrl] = useState("");
-  useEffect(() => () => { stop.current = true; stopSpeaking(); }, []);
+  useEffect(() => () => { stop.current++; stopSpeaking(); }, []);
   const yt = video && ytId(video);
   const seek = (t?: number) => {
     if (t === undefined) return;
@@ -219,10 +219,10 @@ function LinePlayer({ title, sub, lines, back, video, audio, onDelete, onSaveTr,
     if (aud.current) { aud.current.currentTime = Math.max(0, t - offset); aud.current.play().catch(() => null); }
   };
   const playAll = async () => {
-    if (playing !== null) { stop.current = true; stopSpeaking(); setPlaying(null); return; }
-    stop.current = false;
-    for (let i = 0; i < lines.length && !stop.current; i++) { setPlaying(i); await speak(lines[i].en); }
-    setPlaying(null);
+    if (playing !== null) { stop.current++; stopSpeaking(); setPlaying(null); return; }
+    const my = ++stop.current;
+    for (let i = 0; i < lines.length && stop.current === my; i++) { setPlaying(i); await speak(lines[i].en); }
+    if (stop.current === my) setPlaying(null);
   };
   const onTime = () => {
     const t = (aud.current?.currentTime ?? vid.current?.currentTime ?? 0) + offset;
@@ -502,16 +502,16 @@ function DialogView({ d, back, title }: { d: Dlg; back: string; title: string })
   const [playing, setPlaying] = useState<number | null>(null);
   const [role, setRole] = useState(false);
   const [shown, setShown] = useState<Set<number>>(new Set());
-  const stop = useRef(false);
-  useEffect(() => () => { stop.current = true; stopSpeaking(); }, []);
+  const stop = useRef(0); // her oynatma kendi numarasıyla döner; durdurunca eskisi biter
+  useEffect(() => () => { stop.current++; stopSpeaking(); }, []);
   const playAll = async () => {
-    if (playing !== null) { stop.current = true; stopSpeaking(); setPlaying(null); return; }
-    stop.current = false;
-    for (let i = 0; i < d.l.length && !stop.current; i++) {
+    if (playing !== null) { stop.current++; stopSpeaking(); setPlaying(null); return; }
+    const my = ++stop.current;
+    for (let i = 0; i < d.l.length && stop.current === my; i++) {
       if (role && i % 2 === 1) { setPlaying(i); await new Promise((r) => setTimeout(r, 900 + d.l[i].length * 60)); continue; }
       setPlaying(i); await speak(d.l[i], { voice: i % 2 ? "male" : "female" });
     }
-    setPlaying(null); addStat({ xp: 5 });
+    if (stop.current === my) { setPlaying(null); addStat({ xp: 5 }); }
   };
   return (
     <div>

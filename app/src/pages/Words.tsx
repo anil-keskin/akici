@@ -63,7 +63,7 @@ export default function Words() {
   return (
     <div>
       <PageHead title="Kelimeler" sub={`${all.length.toLocaleString("tr")} kelime · en sık kullanılandan başlayarak. İlk 2.000 kelime günlük konuşmanın ~%80'ini kapsar.`}
-        icon={<div className="ico iris"><BookOpen /></div>} right={<button className="btn sm amber" onClick={() => go("/rastgele?k=kelime")}>🎲 Rastgele</button>} />
+        icon={<div className="ico iris"><BookOpen /></div>} right={<div className="row" style={{ gap: 6 }}><button className="btn sm amber" onClick={() => go("/rastgele?k=kelime")}>🎲 Rastgele</button><button className="btn sm primary" onClick={() => go("/pratik?k=vocab&t=" + encodeURIComponent("useful everyday vocabulary") + "&b=/kelimeler")}>✨ Loki alıştırma</button></div>} />
       <div className="card col" style={{ gap: 14 }}>
         <div className="row" style={{ position: "relative" }}>
           <Search size={18} style={{ position: "absolute", left: 14, color: "var(--ink-3)" }} />

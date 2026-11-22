@@ -111,7 +111,7 @@ function Reader({ id, ch }: { id: string; ch: number }) {
   };
   const readPara = async (pi: number) => {
     if (reading === pi) { stopSpeaking(); setReading(null); return; }
-    setReading(pi); await speak(chapter.p[pi]); setReading(null);
+    setReading(pi); await speak(chapter.p[pi]); setReading((r) => (r === pi ? null : r));
   };
   const nextCh = () => { addStat({ xp: 15 }); go(`/okuma/${id}?ch=${ch + 1}`); };
   return (
@@ -127,7 +127,10 @@ function Reader({ id, ch }: { id: string; ch: number }) {
         </div>
       </div>
       <div className="reader">
-        <h2 className="h2" style={{ marginBottom: 20 }}>{chapter.title}</h2>
+        <div className="row between wrap" style={{ marginBottom: 20, gap: 8 }}>
+          <h2 className="h2" style={{ margin: 0 }}>{chapter.title}</h2>
+          <button className="btn sm primary" onClick={() => { try { sessionStorage.setItem("pratik.text", chapter.p.join(" ").slice(0, 4000)); } catch { /* */ } go(`/pratik?k=reading&lv=${book?.meta.lv || "B1"}&t=${encodeURIComponent(chapter.title.slice(0, 80))}`); }}>✨ Bu bölümden alıştırma</button>
+        </div>
         {paras.map((toks, pi) => (
           <div key={pi} style={{ position: "relative" }}>
             <p>

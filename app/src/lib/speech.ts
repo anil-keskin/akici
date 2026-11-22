@@ -33,6 +33,7 @@ export const native: NativeBridge = {};
 let currentAudio: HTMLAudioElement | null = null;
 let pendingDone: (() => void) | null = null; // durdurulunca bekleyen konuşma sözünü bitir
 export function stopSpeaking() {
+  speakGen++; speakingNow = false;
   try { currentAudio?.pause(); } catch { /* */ }
   const d = pendingDone; pendingDone = null; d?.();
   try { speechSynthesis?.cancel(); } catch { /* */ }
@@ -59,12 +60,42 @@ export function englishVoices(): SpeechSynthesisVoice[] {
   try { return speechSynthesis.getVoices().filter((v) => v.lang.startsWith("en")); } catch { return []; }
 }
 
-/** Metni okur. Bittiğinde resolve olur. */
+/** Uzun metni cümle cümle parçala (Chrome uzun konuşmayı ~15 sn'de sessizce kesiyor; durdurma da anında olsun) */
+function splitSpeech(text: string): string[] {
+  const t = text.trim();
+  if (t.length <= 180) return [t];
+  const sents = t.match(/[^.!?;:]+[.!?;:]*["')\]]*\s*/g) || [t];
+  const out: string[] = []; let cur = "";
+  for (const s of sents) {
+    if ((cur + s).length > 180 && cur) { out.push(cur.trim()); cur = ""; }
+    if (s.length > 220) { for (const w of s.match(/.{1,180}(\s|$)/g) || [s]) out.push(w.trim()); continue; }
+    cur += s;
+  }
+  if (cur.trim()) out.push(cur.trim());
+  return out.filter(Boolean);
+}
+let speakGen = 0; // her yeni konuşma ya da durdurma bir öncekini geçersiz kılar
+let speakingNow = false;
+export function isSpeaking() { return speakingNow; }
+
+/** Metni okur. Bittiğinde (ya da durdurulunca) resolve olur. */
 export async function speak(text: string, opts: { rate?: number; slow?: boolean; voice?: "female" | "male" } = {}): Promise<void> {
   stopSpeaking();
+  const my = ++speakGen;
+  const map = await audioMap();
+  const parts = map[fnv1a(text.trim())] ? [text] : splitSpeech(text);
+  speakingNow = true;
+  try {
+    for (const p of parts) {
+      if (my !== speakGen) return;
+      await speakOne(p, opts, map);
+    }
+  } finally { if (my === speakGen) speakingNow = false; }
+}
+
+async function speakOne(text: string, opts: { rate?: number; slow?: boolean; voice?: "female" | "male" }, map: Record<string, string>): Promise<void> {
   const s = getSettings();
   const rate = (opts.rate ?? s.rate) * (opts.slow ? 0.75 : 1);
-  const map = await audioMap();
   const file = map[fnv1a(text.trim())];
   if (file) {
     return new Promise((res) => {
@@ -88,6 +119,8 @@ export async function speak(text: string, opts: { rate?: number; slow?: boolean;
     const v = pickVoice(opts.voice); if (v) u.voice = v;
     u.lang = v?.lang || s.accent; u.rate = rate;
     u.onend = () => res(); u.onerror = () => res();
+    // Güvence: bazı tarayıcılarda "bitti" haberi hiç gelmez → tahmini süre + 3 sn sonra devam et
+    window.setTimeout(() => res(), 3000 + text.length * 110 / Math.max(0.4, rate));
     speechSynthesis.speak(u);
   });
 }

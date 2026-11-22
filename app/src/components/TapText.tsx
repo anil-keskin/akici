@@ -26,7 +26,7 @@ export function TapText({ paras, tr }: { paras: string[]; tr?: string[] }) {
   };
   const readPara = async (pi: number) => {
     if (reading === pi) { stopSpeaking(); setReading(null); return; }
-    setReading(pi); await speak(paras[pi]); setReading(null);
+    setReading(pi); await speak(paras[pi]); setReading((r) => (r === pi ? null : r));
   };
   const toggleTr = async (pi: number) => {
     const n = new Set(showTr);

@@ -12,7 +12,9 @@ export type Step =
   | { t: "dict"; s: Sentence }
   | { t: "speak"; text: string; tr?: string }
   | { t: "match"; pairs: [string, string][] }
-  | { t: "gram"; topic: string; q: string; a: string; tr?: string; h?: string; ch?: string[] };
+  | { t: "gram"; topic: string; q: string; a: string; tr?: string; h?: string; ch?: string[]; why?: string }
+  | { t: "choice"; prompt: string; tr?: string; opts: string[]; a: string; why?: string }
+  | { t: "write"; tr: string; a: string; why?: string };
 
 export function meaning(w: Word) { return w.tr[0] || w.d[0]?.g || w.w; }
 
