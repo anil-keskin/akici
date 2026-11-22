@@ -27,7 +27,7 @@ export function Ring({ value, size = 120, stroke = 12, color = "url(#rg)", child
 }
 
 export function Bar({ value, cls = "" }: { value: number; cls?: string }) {
-  return <div className={`bar ${cls}`}><i style={{ width: `${Math.max(0, Math.min(100, value * 100))}%` }} /></div>;
+  return <div className={`bar ${cls}`} role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(value * 100)}><i style={{ width: `${Math.max(0, Math.min(100, value * 100))}%` }} /></div>;
 }
 
 export function Spinner({ label }: { label?: string }) {
@@ -129,7 +129,7 @@ export function Empty({ title, text, action }: { title: string; text?: string; a
 }
 
 /** Loki: bej Fransız bulldog maskot (özgün çizim) */
-export function Mascot({ size = 64, mood = "happy" }: { size?: number; mood?: "happy" | "think" | "wow" | "sad" }) {
+export function Mascot({ size = 64, mood = "happy", still = false }: { size?: number; mood?: "happy" | "think" | "wow" | "sad"; still?: boolean }) {
   const look = mood === "think" ? -3 : 0;
   const mouth = {
     happy: "M41 71 Q45.5 76 50 72 Q54.5 76 59 71",
@@ -138,16 +138,16 @@ export function Mascot({ size = 64, mood = "happy" }: { size?: number; mood?: "h
     sad: "M42 76 Q50 70 58 76",
   }[mood];
   return (
-    <svg width={size} height={size} viewBox="0 0 100 100" aria-hidden="true">
-      <path d="M24 44 C8 36 4 12 14 5 C27 2 38 20 41 33 Z" fill="#cfa77c" />
-      <path d="M24 37 C14 31 11 15 17 11 C26 10 33 22 35 31 Z" fill="#f0b4a4" />
-      <path d="M76 44 C92 36 96 12 86 5 C73 2 62 20 59 33 Z" fill="#cfa77c" />
-      <path d="M76 37 C86 31 89 15 83 11 C74 10 67 22 65 31 Z" fill="#f0b4a4" />
+    <svg width={size} height={size} viewBox="0 0 100 100" aria-hidden="true" className={still ? "" : "loki-alive"}>
+      <g className="loki-ear-l"><path d="M24 44 C8 36 4 12 14 5 C27 2 38 20 41 33 Z" fill="#cfa77c" />
+      <path d="M24 37 C14 31 11 15 17 11 C26 10 33 22 35 31 Z" fill="#f0b4a4" /></g>
+      <g className="loki-ear-r"><path d="M76 44 C92 36 96 12 86 5 C73 2 62 20 59 33 Z" fill="#cfa77c" />
+      <path d="M76 37 C86 31 89 15 83 11 C74 10 67 22 65 31 Z" fill="#f0b4a4" /></g>
       <path d="M50 28 C76 28 92 42 92 60 C92 80 74 93 50 93 C26 93 8 80 8 60 C8 42 24 28 50 28 Z" fill="#dfbd93" />
       <path d="M43 38 Q50 35 57 38 M45 43 Q50 41 55 43" stroke="#b78f68" strokeWidth="2" fill="none" strokeLinecap="round" />
       <path d="M29 66 C29 56 39 51 50 51 C61 51 71 56 71 66 C71 79 63 86 56 84 C53 88 47 88 44 84 C37 86 29 79 29 66 Z" fill="#7a5a4c" />
-      <circle cx="30" cy="51" r="8.5" fill="#22150f" /><circle cx="70" cy="51" r="8.5" fill="#22150f" />
-      <circle cx={32.5 + look} cy="48" r="3" fill="#fff" /><circle cx={72.5 + look} cy="48" r="3" fill="#fff" />
+      <g className="loki-eyes"><circle cx="30" cy="51" r="8.5" fill="#22150f" /><circle cx="70" cy="51" r="8.5" fill="#22150f" />
+      <circle cx={32.5 + look} cy="48" r="3" fill="#fff" /><circle cx={72.5 + look} cy="48" r="3" fill="#fff" /></g>
       {mood === "sad" && <><path d="M21 47 Q30 41 39 47 L39 42 L21 42Z" fill="#dfbd93" /><path d="M61 47 Q70 41 79 47 L79 42 L61 42Z" fill="#dfbd93" /></>}
       <ellipse cx="50" cy="59" rx="9" ry="5.5" fill="#22150f" />
       <ellipse cx="47" cy="57.5" rx="2.6" ry="1.3" fill="#6a5248" />

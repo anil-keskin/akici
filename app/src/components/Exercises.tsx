@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { motion } from "motion/react";
+import { Burst, combo, haptic } from "./fx";
 import { Check, X, Volume2, Mic, Square, ArrowRight, Lightbulb, RotateCcw } from "lucide-react";
 import { AudioBtn, Lv, Mascot, useMicConsent } from "./ui";
 import { check, alignWords, scoreOf, norm } from "../lib/grade";
@@ -13,19 +15,34 @@ export interface ExProps { onDone: (r: Result) => void }
 /** Alt kısımdaki geri bildirim + Devam düğmesi */
 export function Feedback({ r, answer, extra, onNext }: { r: Result | null; answer?: ReactNode; extra?: ReactNode; onNext: () => void }) {
   const btn = useRef<HTMLButtonElement>(null);
-  useEffect(() => { if (r) { setTimeout(() => btn.current?.focus(), 50); sfx(r === "ok" || r === "typo" ? "ok" : "bad"); } }, [r]);
+  const [streak, setStreak] = useState(0);
+  useEffect(() => {
+    if (!r) return;
+    setTimeout(() => btn.current?.focus(), 50);
+    const g = r === "ok" || r === "typo";
+    sfx(g ? "ok" : "bad"); haptic(g ? "ok" : r === "skip" ? "tap" : "bad");
+    if (g) setStreak(combo.hit()); else if (r !== "skip") { combo.miss(); setStreak(0); }
+  }, [r]);
   if (!r) return null;
   const good = r === "ok" || r === "typo";
+  const praise = ["Harika!", "Süper!", "Aynen öyle!", "Mükemmel!", "Bravo!"][streak % 5];
   return (
-    <div className={`feedback pop ${good ? "ok" : "bad"}`}>
-      <div className={good ? "loki-bounce" : "loki-shake"} style={{ flex: "none" }}><Mascot size={54} mood={good ? "happy" : "sad"} /></div>
+    <motion.div className={`feedback ${good ? "ok" : "bad"}`} initial={{ y: 60, opacity: 0 }} animate={{ y: 0, opacity: 1, x: good ? 0 : [0, -10, 10, -6, 6, 0] }}
+      transition={{ y: { type: "spring", stiffness: 420, damping: 30 }, x: { duration: 0.4 } }}>
+      <div style={{ flex: "none", position: "relative" }}>
+        <motion.div initial={{ scale: 0.6, rotate: good ? -15 : 0 }} animate={{ scale: 1, rotate: 0 }} transition={{ type: "spring", stiffness: 500, damping: 12 }}>
+          <Mascot size={54} mood={good ? "happy" : "sad"} />
+        </motion.div>
+        {good && <Burst />}
+      </div>
       <div className="grow">
-        <div style={{ fontWeight: 800, fontSize: 18 }}>{r === "ok" ? "Harika!" : r === "typo" ? "Neredeyse — küçük bir yazım farkı" : r === "skip" ? "Geçildi" : "Doğrusu:"}</div>
+        <div style={{ fontWeight: 800, fontSize: 18 }} className="row">{r === "ok" ? praise : r === "typo" ? "Neredeyse — küçük bir yazım farkı" : r === "skip" ? "Geçildi" : "Doğrusu:"}
+          {good && streak >= 3 && <motion.span className="combo" initial={{ scale: 0 }} animate={{ scale: [0, 1.3, 1] }} transition={{ duration: 0.4 }}>🔥 {streak} üst üste</motion.span>}</div>
         {answer && <div style={{ fontWeight: 650 }}>{answer}</div>}
         {extra && <div className="small" style={{ opacity: .85, marginTop: 4 }}>{extra}</div>}
       </div>
       <button ref={btn} className={`btn ${good ? "mint" : "coral"}`} onClick={onNext}>Devam <ArrowRight size={18} /></button>
-    </div>
+    </motion.div>
   );
 }
 

@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Celebrate, combo } from "../components/fx";
 import { X, Flame, Trophy, Target, Repeat } from "lucide-react";
 import { Bar, Mascot, Spinner, confetti } from "../components/ui";
 import { Build, Choice, ClozeLine, Intro, Match, Speak, Typing, blankOut, type Result } from "../components/Exercises";
@@ -68,7 +69,7 @@ export default function Session() {
   const [retry, setRetry] = useState<Step[]>([]);
   const [t0] = useState(Date.now());
   const [end, setEnd] = useState<{ streak: number } | null>(null);
-  useEffect(() => { buildLesson().then(setSteps); }, []);
+  useEffect(() => { combo.miss(); buildLesson().then(setSteps); }, []);
 
   if (!steps) return <Spinner label=" Dersin hazırlanıyor…" />;
   const total = steps.length;
@@ -77,7 +78,6 @@ export default function Session() {
   const finish = async () => {
     const s = await streak();
     setEnd({ streak: s.days });
-    confetti();
   };
   const next = async (r: Result, step: Step) => {
     const good = r === "ok" || r === "typo";
@@ -102,19 +102,10 @@ export default function Session() {
     const mins = Math.max(1, Math.round((Date.now() - t0) / 60000));
     const acc = stats.ok + stats.bad ? Math.round((stats.ok / (stats.ok + stats.bad)) * 100) : 100;
     return (
-      <div className="ex-wrap col pop" style={{ alignItems: "center", textAlign: "center", gap: 18, paddingTop: 40 }}>
-        <Mascot size={130} mood="wow" />
-        <h1 className="h1">Ders tamam!</h1>
-        <div className="grid g3" style={{ width: "100%" }}>
-          <div className="card"><Trophy color="var(--amber)" /><div className="h2">+{stats.xp}</div><div className="muted small">XP</div></div>
-          <div className="card"><Target color="var(--mint)" /><div className="h2">%{acc}</div><div className="muted small">doğruluk · {mins} dk</div></div>
-          <div className="card"><Flame color="var(--coral)" /><div className="h2">{end.streak}</div><div className="muted small">gün seri</div></div>
-        </div>
-        <div className="row wrap" style={{ justifyContent: "center" }}>
-          <button className="btn primary big" onClick={() => location.reload()}><Repeat size={18} /> Bir ders daha</button>
-          <button className="btn ghost big" onClick={() => go("/")}>Ana sayfa</button>
-        </div>
-      </div>
+      <Celebrate title="Ders tamam!" xp={stats.xp} acc={acc} extra={`doğruluk · ${mins} dk`} streak={end.streak}>
+        <button className="btn primary big" onClick={() => location.reload()}><Repeat size={18} /> Bir ders daha</button>
+        <button className="btn ghost big" onClick={() => go("/")}>Ana sayfa</button>
+      </Celebrate>
     );
   }
   if (!cur) return <Spinner />;

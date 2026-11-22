@@ -1,3 +1,4 @@
+import { motion } from "motion/react";
 import { lazy, Suspense, useEffect, type ComponentType } from "react";
 import {
   Home as HomeI, BookOpen, Repeat, GraduationCap, Quote, Headphones, Mic, BookMarked, Theater, MessageCircle,
@@ -5,7 +6,8 @@ import {
 } from "lucide-react";
 import { back, go, useRoute } from "./lib/router";
 import { SelectTranslate } from "./components/SelectTranslate";
-import { Mascot, Spinner, ToastHost, ConfettiHost, toast } from "./components/ui";
+import { Mascot, Spinner, ToastHost, ConfettiHost, toast, confetti } from "./components/ui";
+import { haptic } from "./components/fx";
 import { kvGet } from "./lib/db";
 
 type PageMod = { default: ComponentType<{ id?: string; params: URLSearchParams }> };
@@ -86,9 +88,11 @@ export default function App() {
   useEffect(() => {
     // Bulut yedeği açıksa: başka cihazdaki yeni ilerlemeyi getir, sonra düzenli yedekle
     import("./lib/sync").then((m) => m.startAutoSync());
+    const onGoal = () => { confetti(); haptic("win"); toast("🎉 Günlük hedef tamam! Loki seninle gurur duyuyor."); };
+    window.addEventListener("akici-goal", onGoal);
     const onSynced = () => location.reload();
     window.addEventListener("lokilingo-synced", onSynced);
-    return () => window.removeEventListener("lokilingo-synced", onSynced);
+    return () => { window.removeEventListener("lokilingo-synced", onSynced); window.removeEventListener("akici-goal", onGoal); };
   }, []);
   useEffect(() => {
     kvGet("onboarded", false).then((v) => { if (!v && base !== "/basla" && base !== "/ayarlar" && base !== "/test") go("/basla"); });
@@ -121,14 +125,20 @@ export default function App() {
             </div>
           )}
           <Suspense fallback={<Spinner />}>
-            <Page id={id} params={params} />
+            <motion.div key={base + (id || "")} initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.24, ease: [0.16, 1, 0.3, 1] }}>
+              <Page id={id} params={params} />
+            </motion.div>
           </Suspense>
         </div>
       </main>
       {!focus && (
         <nav className="tabbar">
           {TABS.map((t) => (
-            <a key={t.to} href={`#${t.to}`} className={`tab ${t.match.includes(base) ? "on" : ""}`}><t.icon size={22} />{t.label}</a>
+            <a key={t.to} href={`#${t.to}`} className={`tab ${t.match.includes(base) ? "on" : ""}`}>
+              {t.match.includes(base) && <motion.span layoutId="tabpill" className="tab-pill" transition={{ type: "spring", stiffness: 500, damping: 36 }} />}
+              <motion.span key={t.match.includes(base) ? "on" : "off"} className="tab-ico" initial={t.match.includes(base) ? { scale: 0.6, y: 4 } : false} animate={{ scale: 1, y: 0 }} transition={{ type: "spring", stiffness: 500, damping: 15 }}><t.icon size={22} /></motion.span>
+              {t.label}
+            </a>
           ))}
         </nav>
       )}

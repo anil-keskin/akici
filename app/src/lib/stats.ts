@@ -14,6 +14,7 @@ export function onStats(fn: () => void) { listeners.add(fn); return () => { list
 export async function addStat(p: Partial<Omit<DayStat, "day">>) {
   const k = dayKey();
   const before = p.xp ? levelFromXp(await totalXp()).lvl : 0;
+  const xpBefore = p.xp ? ((await db.days.get(k))?.xp || 0) : 0;
   await db.transaction("rw", db.days, async () => {
     const cur = (await db.days.get(k)) || EMPTY(k);
     for (const [key, val] of Object.entries(p)) (cur as unknown as Record<string, number>)[key] += val as number;
@@ -23,6 +24,8 @@ export async function addStat(p: Partial<Omit<DayStat, "day">>) {
     sfx("level");
     window.dispatchEvent(new CustomEvent("akici-levelup", { detail: levelFromXp(await totalXp()).lvl }));
   }
+  // Günlük hedef bu XP ile tamamlandıysa kutla (günde bir kez)
+  if (p.xp) { const g = await goal(); if (xpBefore < g && xpBefore + p.xp >= g) window.dispatchEvent(new CustomEvent("akici-goal")); }
   listeners.forEach((f) => f());
 }
 export async function today(): Promise<DayStat> { return (await db.days.get(dayKey())) || EMPTY(dayKey()); }

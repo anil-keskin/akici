@@ -32,7 +32,7 @@ export default function Learn() {
   const [done, setDone] = useState<Set<string>>(new Set());
   useEffect(() => { db.progress.where("kind").equals("ai").toArray().then((r) => setDone(new Set(r.filter((p) => p.done > 0).map((p) => p.id)))); }, []);
   return (
-    <div className="col" style={{ gap: 14, maxWidth: 900, margin: "0 auto" }}>
+    <div className="col stagger" style={{ gap: 14, maxWidth: 900, margin: "0 auto" }}>
       <div className="sec-title">Kategoriler · bir yol seç</div>
       <TrackGrid done={done} />
       {GROUPS.map(([g, rows]) => (

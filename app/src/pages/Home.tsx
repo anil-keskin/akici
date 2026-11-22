@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 import { Flame, Repeat, Sparkles, Trophy, Cloud, MessageCircle, Dices } from "lucide-react";
+import { motion } from "motion/react";
+import { LokiBuddy, CountUp } from "../components/fx";
 import { AudioBtn, Lv, Mascot } from "../components/ui";
 import { TRACKS, unitPid } from "../lib/tracks";
 import { WordSheet } from "../components/WordSheet";
@@ -46,9 +48,9 @@ export default function Home() {
   const last = lastTrack ? TRACKS.find((t) => t.id === lastTrack) : undefined;
   const lastN = last ? last.units.filter((un) => doneSet.has(unitPid(un))).length : 0;
   return (
-    <div className="col" style={{ gap: 16, maxWidth: 640, margin: "0 auto" }}>
+    <div className="col stagger" style={{ gap: 16, maxWidth: 640, margin: "0 auto" }}>
       <div className="today-top">
-        <div className="loki-bounce" style={{ flex: "none" }}><Mascot size={46} /></div>
+        <LokiBuddy size={50} />
         <div className="grow" style={{ minWidth: 0 }}>
           <div className="muted small">{hello()}</div>
           <b style={{ fontSize: 20 }}>{name || "Hoş geldin"}</b>
@@ -63,11 +65,11 @@ export default function Home() {
             <div className="small" style={{ fontWeight: 800, letterSpacing: ".06em" }}>GÜNÜN DERSİ · ~5 DK</div>
             <div style={{ fontSize: 22, fontWeight: 800, lineHeight: 1.25, marginTop: 4 }}>{st.xp >= st.goal ? "Hedef tamam! Bir ders daha?" : "Yeni kelimeler, gramer ve konuşma"}</div>
           </div>
-          <div style={{ background: "rgba(255,255,255,.92)", borderRadius: "50%", padding: 4, flex: "none" }}><Mascot size={60} mood={st.xp >= st.goal ? "wow" : "happy"} /></div>
+          <motion.div style={{ background: "rgba(255,255,255,.92)", borderRadius: "50%", padding: 4, flex: "none" }} animate={{ y: [0, -5, 0] }} transition={{ repeat: Infinity, duration: 2.4, ease: "easeInOut" }}><Mascot size={60} mood={st.xp >= st.goal ? "wow" : "happy"} /></motion.div>
         </div>
         <div>
-          <div className="meter"><i style={{ width: `${pct * 100}%` }} /></div>
-          <div className="small" style={{ marginTop: 6 }}>{st.xp} / {st.goal} XP · günlük hedef</div>
+          <div className="meter"><motion.i initial={{ width: 0 }} animate={{ width: `${pct * 100}%` }} transition={{ duration: 1, ease: [0.16, 1, 0.3, 1], delay: 0.2 }} /></div>
+          <div className="small" style={{ marginTop: 6 }}><CountUp to={st.xp} /> / {st.goal} XP · günlük hedef</div>
         </div>
         <button className="btn white" onClick={() => go("/ders")}><Sparkles size={20} /> {st.xp > 0 ? "Devam et" : "Başla"}</button>
       </div>

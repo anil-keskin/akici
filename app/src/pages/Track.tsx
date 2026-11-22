@@ -1,6 +1,7 @@
 // Kategori yolu: dersler dikey bir yolda. Düğüme dokun → Ders (alıştırma) / Kelimeler / Konuş (Loki ile canlandırma).
 // Kilit yok: istediğin derse atlayabilirsin; yol sadece önerilen sırayı ve ilerlemeni gösterir.
 import { useEffect, useState } from "react";
+import { motion } from "motion/react";
 import { ArrowLeft, Check, Star, Sparkles, BookOpen, MessageCircle } from "lucide-react";
 import { Bar, Lv, Sheet } from "../components/ui";
 import { TRACKS, trackById, unitPid, type Unit } from "../lib/tracks";
@@ -39,9 +40,10 @@ export default function TrackPage({ id }: { id?: string }) {
           return (
             <div key={k} className="path-row" style={{ transform: `translateX(${x}px)`, ["--x" as string]: `${x}px` }}>
               {now && <div className="path-bubble">BAŞLA</div>}
-              <button className={`node ${d ? "done" : now ? "now" : "next"}`} aria-label={un.t} onClick={() => setOpen(k)}>
+              <motion.button className={`node ${d ? "done" : now ? "now" : "next"}`} aria-label={un.t} onClick={() => setOpen(k)}
+                initial={{ scale: 0, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ delay: 0.08 + k * 0.06, type: "spring", stiffness: 420, damping: 16 }} whileTap={{ scale: 0.9 }}>
                 {d ? <Check size={30} strokeWidth={3.5} /> : <span style={{ fontSize: 22, fontWeight: 800 }}>{k + 1}</span>}
-              </button>
+              </motion.button>
               <span className="small" style={{ fontWeight: 700, maxWidth: 140, textAlign: "center" }}>{un.t}</span>
             </div>
           );

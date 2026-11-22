@@ -1,6 +1,7 @@
 // AI alıştırma seti: herhangi bir konu × herhangi bir seviye (A1→C2). Her "tekrar"da Loki yepyeni sorular yazar.
 // Yanlış yapılan soru sette bir kez daha sorulur (Duolingo gibi). Sonraki set arka planda hazırlanır → tekrar anında başlar.
 import { useEffect, useRef, useState } from "react";
+import { Celebrate, combo } from "../components/fx";
 import { ArrowLeft, Sparkles, RotateCcw, ArrowUp, X } from "lucide-react";
 import { Bar, Lv, Mascot, Spinner, confetti } from "../components/ui";
 import { StepView } from "./Session";
@@ -55,7 +56,7 @@ export default function AIPractice({ params }: { params: URLSearchParams }) {
     setErr(""); setState("gen");
     try {
       const s = await fetchSet(`${kind}|${topic}|${level}`, level);
-      setSteps(s); setI(0); setOk(0); setTotal(s.length); setState("play");
+      setSteps(s); setI(0); setOk(0); setTotal(s.length); setState("play"); combo.miss();
       setTimeout(prefetch, 1500); // bir sonraki set hazır olsun
     } catch (e) { setErr((e as Error).message); setState("idle"); }
   };
@@ -70,7 +71,7 @@ export default function AIPractice({ params }: { params: URLSearchParams }) {
   };
   const finish = async (good: number) => {
     const score = Math.round((good / Math.max(1, total)) * 100);
-    setState("end"); if (score >= 70) confetti();
+    setState("end");
     addStat({ xp: 15 });
     const p = await db.progress.get(pid);
     await db.progress.put({ id: pid, kind: "ai", done: (p?.done || 0) + 1, score: Math.max(score, p?.score || 0), ts: Date.now() });
@@ -91,25 +92,26 @@ export default function AIPractice({ params }: { params: URLSearchParams }) {
   );
 
   const score = Math.round((ok / Math.max(1, total)) * 100);
+  const nextLv0 = LEVELS[Math.min(LEVELS.indexOf(lv) + 1, LEVELS.length - 1)];
+  if (state === "end") return (
+    <Celebrate title="Set tamam!" xp={ok * 5 + 15} acc={score} extra={`${ok} / ${total} doğru`}>
+      <button className="btn primary big" onClick={() => start()}><RotateCcw size={18} /> Farklı sorularla tekrar</button>
+      {lv !== nextLv0 && score >= 70 && <button className="btn mint big" onClick={() => { setLv(nextLv0); pre.current = null; start(nextLv0); }}><ArrowUp size={18} /> {nextLv0} seviyesine geç</button>}
+      <button className="btn ghost big" onClick={exit}>Geri dön</button>
+    </Celebrate>
+  );
   const nextLv = LEVELS[Math.min(LEVELS.indexOf(lv) + 1, LEVELS.length - 1)];
   return (
     <div className="col" style={{ gap: 16, maxWidth: 680, margin: "0 auto" }}>
       <button className="btn ghost sm" style={{ alignSelf: "flex-start" }} onClick={exit}><ArrowLeft size={16} /> Geri</button>
       <div className="row" style={{ gap: 12 }}>
-        <Mascot size={64} mood={state === "end" ? (score >= 70 ? "happy" : "think") : "happy"} />
+        <Mascot size={64} mood="happy" />
         <div style={{ minWidth: 0 }}>
           <div className="muted small">{KIND_TR[kind] || "Alıştırma"} · Loki'nin hazırladığı set</div>
           <h1 className="h2" style={{ margin: 0 }}>{topic || "Bir konu seç"}</h1>
           {sets > 0 && <div className="tiny" style={{ color: "var(--mint)", fontWeight: 700 }}>Bu konuda {sets} set çözdün</div>}
         </div>
       </div>
-
-      {state === "end" && (
-        <div className="card col pop" style={{ gap: 8, alignItems: "center", textAlign: "center" }}>
-          <div className="display" style={{ fontSize: 44, fontWeight: 800 }}>%{score}</div>
-          <div className="muted">{ok} / {total} doğru · {score >= 90 ? "Harika! Bir üst seviyeyi dene." : score >= 70 ? "Güzel! Bir set daha çöz, iyice otursun." : "Tekrar et: Loki aynı konuda yeni sorular yazacak."}</div>
-        </div>
-      )}
 
       <div className="card col" style={{ gap: 10 }}>
         <b className="small">Seviye seç (istediğin zaman değiştir)</b>
@@ -130,8 +132,7 @@ export default function AIPractice({ params }: { params: URLSearchParams }) {
       {err && <div className="card small" style={{ background: "var(--coral-soft)" }}>⚠️ {err}</div>}
       {state === "gen" ? <Spinner label=" Loki yeni sorular yazıyor… (~10 sn)" /> : (
         <div className="row wrap" style={{ gap: 8 }}>
-          <button className="btn primary big grow" disabled={!topic} onClick={() => start()}>{state === "end" ? <><RotateCcw size={18} /> Farklı sorularla tekrar</> : <><Sparkles size={18} /> Başla ({lv})</>}</button>
-          {state === "end" && lv !== nextLv && <button className="btn mint big" onClick={() => { setLv(nextLv); pre.current = null; start(nextLv); }}><ArrowUp size={18} /> {nextLv} seviyesine geç</button>}
+          <button className="btn primary big grow" disabled={!topic} onClick={() => start()}><Sparkles size={18} /> Başla ({lv})</button>
         </div>
       )}
       <div className="row" style={{ justifyContent: "center" }}><Lv lv={lv} /></div>
