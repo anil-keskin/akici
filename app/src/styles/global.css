@@ -135,6 +135,7 @@ h1, h2, h3 { margin: 0; line-height: 1.15; }
 .btn.primary { background: linear-gradient(135deg, var(--iris), var(--iris-2)); color: #fff; box-shadow: var(--shadow-iris); }
 .btn.coral { background: var(--coral); color: #fff; }
 .btn.mint { background: var(--mint); color: #fff; }
+.btn.amber { background: var(--amber); color: #3a2500; }
 .btn.ghost { background: transparent; border: 1.5px solid var(--line); }
 .btn.ghost:hover { border-color: var(--iris); color: var(--iris); }
 .btn.big { padding: 16px 26px; font-size: 17px; border-radius: 18px; }

@@ -43,7 +43,7 @@ export default function Reading({ id, params }: { id?: string; params: URLSearch
   const lastB = last && books.find((b) => b.id === last.id);
   return (
     <div>
-      <PageHead title="Okuma" sub={`${total.toLocaleString("tr")} metin. Seviyene uygun olanı seç, bilmediğin kelimeye dokun, desteye ekle.`} icon={<div className="ico rose"><Library /></div>} />
+      <PageHead title="Okuma" sub={`${total.toLocaleString("tr")} metin. Seviyene uygun olanı seç, bilmediğin kelimeye dokun, desteye ekle.`} icon={<div className="ico rose"><Library /></div>} right={<button className="btn sm amber" onClick={() => go("/rastgele?k=paragraf")}>🎲 Rastgele</button>} />
       {lastB && <div className="card hover row between" style={{ marginBottom: 16 }} onClick={() => go(`/okuma/${lastB.id}?ch=${last!.pos || 0}`)}>
         <div><div className="muted tiny">Kaldığın yerden devam et</div><b>{lastB.title}</b> <span className="muted small">· bölüm {(last!.pos || 0) + 1}/{lastB.chapters}</span></div>
         <ChevronRight />

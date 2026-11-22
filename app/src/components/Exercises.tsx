@@ -231,7 +231,7 @@ export function Speak({ text, tr, onDone, allowSkip = true }: ExProps & { text: 
       {heard && (
         <div className="col" style={{ gap: 6 }}>
           <div className="h2">{sc} / 100</div>
-          <div className="muted small">Duyulan: “{heard.text || "…"}” · {heard.engine === "whisper" ? "Whisper (yerel)" : heard.engine === "native" ? "Android" : "tarayıcı"}</div>
+          <div className="muted small">Duyulan: “{heard.text || "…"}” · {heard.engine === "whisper" ? "Whisper (yerel)" : heard.engine === "cloud" ? "Loki ses tanıma" : heard.engine === "native" ? "Android" : "tarayıcı"}</div>
           <div className="row" style={{ justifyContent: "center" }}>
             {heard.audioUrl && <button className="btn sm ghost" onClick={() => new Audio(heard.audioUrl).play()}><Volume2 size={14} /> Kendi sesim</button>}
             <button className="btn sm ghost" onClick={() => { setHeard(null); setState("idle"); }}><RotateCcw size={14} /> Tekrar dene</button>

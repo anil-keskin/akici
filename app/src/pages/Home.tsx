@@ -76,6 +76,7 @@ export default function Home() {
             <div className="sub hero-sub">{st.due > 0 ? `${st.due} kart tekrarını bekliyor. ` : ""}Bugünkü dersin hazır: yeni kelimeler, gramer, dinleme ve konuşma karışık.</div>
             <div className="row wrap" style={{ marginTop: 8 }}>
               <button className="btn big white" onClick={() => go("/ders")}><Sparkles size={20} /> {st.xp > 0 ? "Devam et" : "Günün dersine başla"}</button>
+              <button className="btn big" style={{ background: "rgba(255,255,255,.16)", color: "#fff" }} onClick={() => go("/rastgele")}>🎲 Rastgele</button>
               {st.due > 0 && <button className="btn big" style={{ background: "rgba(255,255,255,.16)", color: "#fff" }} onClick={() => go("/tekrar")}><Repeat size={20} /> Tekrar ({st.due})</button>}
             </div>
           </div>

@@ -23,7 +23,10 @@ interface Line { role: "user" | "assistant"; content: string; fix?: string; why?
 export default function Chat({ params }: { params: URLSearchParams }) {
   const s = useSettings();
   const [mode, setMode] = useState<Mode>((params.get("mode") as Mode) || "free");
-  const [lines, setLines] = useState<Line[]>([]);
+  const [lines, setLinesState] = useState<Line[]>([]);
+  // Sesli sohbette eski kapanışlar (closure) bayat "lines" görmesin: güncel liste hep bu ref'te
+  const linesRef = useRef<Line[]>([]);
+  const setLines = (v: Line[] | ((ls: Line[]) => Line[])) => setLinesState((ls) => { const n = typeof v === "function" ? v(ls) : v; linesRef.current = n; return n; });
   const [v, setV] = useState(params.get("q") || "");
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
@@ -86,7 +89,7 @@ export default function Chat({ params }: { params: URLSearchParams }) {
     const t = text.trim();
     if (!t || busy) return;
     if (t.length > 4000) { setErr("Mesaj çok uzun (en fazla 4000 karakter)."); return; }
-    const next: Line[] = [...lines, { role: "user", content: t }];
+    const next: Line[] = [...linesRef.current, { role: "user", content: t }];
     setLines(next); setV(""); setBusy(true); setErr("");
     try {
       const history: Msg[] = [system(), ...next.slice(-16).map((l) => ({ role: l.role, content: l.content }))];

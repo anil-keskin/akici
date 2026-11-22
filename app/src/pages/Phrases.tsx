@@ -41,7 +41,7 @@ export default function Phrases() {
   const counts = Object.fromEntries(KINDS.map((x) => [x, all.filter((p) => p.k === x).length]));
   return (
     <div>
-      <PageHead title="Kalıplar & deyimler" sub={`${all.length.toLocaleString("tr")} phrasal verb, deyim, atasözü ve kalıp`} icon={<div className="ico amber"><Quote /></div>} />
+      <PageHead title="Kalıplar & deyimler" sub={`${all.length.toLocaleString("tr")} phrasal verb, deyim, atasözü ve kalıp`} icon={<div className="ico amber"><Quote /></div>} right={<button className="btn sm amber" onClick={() => go("/rastgele?k=kalip")}>🎲 Rastgele</button>} />
       <div className="card col" style={{ gap: 12 }}>
         <div className="row" style={{ position: "relative" }}>
           <Search size={18} style={{ position: "absolute", left: 14, color: "var(--ink-3)" }} />

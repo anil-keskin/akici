@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Mic, Repeat2, Target, MessagesSquare, ArrowLeft, Play, Square, SkipForward, Volume2 } from "lucide-react";
+import { Mic, Repeat2, Target, MessagesSquare, ArrowLeft, Play, Square, SkipForward, SkipBack, Volume2, RotateCcw } from "lucide-react";
 import { AudioBtn, Lv, PageHead, Spinner, useMicConsent } from "../components/ui";
 import { Speak } from "../components/Exercises";
 import { LEVELS, minimalPairs, pick, sentences, type Level, type Sentence } from "../lib/data";
@@ -72,39 +72,64 @@ function Shadow({ onBack }: { onBack: () => void }) {
   const [list, setList] = useState<Sentence[] | null>(null);
   const [i, setI] = useState(0);
   const [rate, setRate] = useState(0.85);
+  const [together, setTogether] = useState(false); // false: önce dinle, sonra tekrar et · true: aynı anda söyle
   const [, request, consentUi] = useMicConsent();
-  const [rec, setRec] = useState<"idle" | "rec" | "wait">("idle");
+  const [rec, setRec] = useState<"idle" | "play" | "rec" | "wait">("idle");
   const [heard, setHeard] = useState<Heard | null>(null);
+  const [err, setErr] = useState("");
   const lis = useRef<Listener | null>(null);
+  const alive = useRef(true);
   useEffect(() => { kvGet<Level>("level", "A2").then(setLv); }, []);
   useEffect(() => { setList(null); sentences(lv).then((a) => setList(pick(a.filter((s) => { const n = s[1].split(" ").length; return n >= 5 && n <= 16; }), 100))); }, [lv]);
-  useEffect(() => () => { stopSpeaking(); lis.current?.cancel(); }, []);
+  useEffect(() => () => { alive.current = false; stopSpeaking(); lis.current?.cancel(); }, []);
   if (!list) return <Spinner />;
   const cur = list[i];
   const parts = chunks(cur[1]);
-  const shadowRun = async () => {
-    if (!(await request())) return;
-    setHeard(null);
-    const l = new Listener(); lis.current = l;
-    await l.start(30);
-    setRec("rec");
-    await speak(cur[1], { rate });       // aynı anda dinle + konuş (gerçek shadowing)
-    await new Promise((r) => setTimeout(r, 700));
+
+  /** Kaydı bitir ve değerlendir (sessizlikte kendiliğinden ya da Bitir düğmesiyle) */
+  const finish = async () => {
+    const l = lis.current; if (!l) return;
+    lis.current = null; stopSpeaking();
     setRec("wait");
-    const h = await l.stop(); lis.current = null;
-    setHeard(h); setRec("idle");
-    addStat({ xp: 6 });
+    try { const h = await l.stop(); if (alive.current) { setHeard(h); if (h.text) addStat({ xp: 6 }); else setErr("Sesini duyamadım. Mikrofona yakın ve net söyle, tekrar dene."); } }
+    catch (e) { setErr((e as Error).message); }
+    if (alive.current) setRec("idle");
   };
+  const listen = async () => {
+    const l = new Listener(); lis.current = l;
+    await l.start(25, () => finish()); // sen susunca (2,5 sn) kendiliğinden biter
+    setRec("rec");
+  };
+  const run = async () => {
+    setErr(""); setHeard(null);
+    if (!(await request())) return;
+    try {
+      if (together) {
+        await listen();            // aynı anda: kayıt açık, cümle çalar, sen birlikte söylersin
+        await speak(cur[1], { rate });
+      } else {
+        setRec("play");
+        await speak(cur[1], { rate }); // önce dinle…
+        if (!alive.current) return;
+        await listen();                 // …sonra sen tekrar et
+      }
+    } catch (e) { setErr((e as Error).message); setRec("idle"); lis.current?.cancel(); lis.current = null; }
+  };
+  const go2 = (d: number) => { lis.current?.cancel(); lis.current = null; stopSpeaking(); setRec("idle"); setHeard(null); setErr(""); setI((i + d + list.length) % list.length); };
   const al = heard ? alignWords(cur[1], heard.text) : [];
   return (
     <div className="ex-wrap col" style={{ gap: 16 }}>
       {consentUi}
       <div className="row between wrap">
         <button className="btn ghost sm" onClick={onBack}><ArrowLeft size={16} /> Konuşma</button>
-        <div className="scroll-x">{LEVELS.map((l) => <button key={l} className={`chip ${lv === l ? "on" : ""}`} onClick={() => { setLv(l); setI(0); }}>{l}</button>)}</div>
+        <div className="scroll-x">{LEVELS.map((l) => <button key={l} className={`chip ${lv === l ? "on" : ""}`} onClick={() => { setLv(l); setI(0); setHeard(null); }}>{l}</button>)}</div>
+      </div>
+      <div className="row" style={{ gap: 6, justifyContent: "center" }}>
+        <button className={`chip ${!together ? "on" : ""}`} onClick={() => setTogether(false)}>Dinle → sonra tekrar et</button>
+        <button className={`chip ${together ? "on" : ""}`} onClick={() => setTogether(true)}>Aynı anda söyle</button>
       </div>
       <div className="card pad-lg col" style={{ gap: 14, textAlign: "center", alignItems: "center" }}>
-        <Lv lv={lv} />
+        <div className="row" style={{ gap: 8 }}><Lv lv={lv} /><span className="muted tiny">{i + 1} / {list.length}</span></div>
         <div className="display" style={{ fontSize: 28, fontWeight: 650, lineHeight: 1.4 }}>
           {heard ? al.map((x, k) => <span key={k} className={x.s === "ok" ? "w-ok" : x.s === "miss" ? "w-miss" : "w-bad"}>{x.w} </span>) : cur[1]}
         </div>
@@ -118,22 +143,29 @@ function Shadow({ onBack }: { onBack: () => void }) {
           <b className="small">{rate.toFixed(2)}×</b>
         </div>
         <div className="row wrap" style={{ justifyContent: "center" }}>
+          <button className="btn ghost" aria-label="Önceki" onClick={() => go2(-1)}><SkipBack size={18} /></button>
           <button className="btn ghost" onClick={() => speak(cur[1], { rate })}><Play size={18} /> Dinle</button>
-          <button className="btn coral" disabled={rec !== "idle"} onClick={shadowRun}>{rec === "rec" ? <><span className="rec-dot" /> Birlikte söyle…</> : rec === "wait" ? "Değerlendiriliyor…" : <><Mic size={18} /> Shadowing yap</>}</button>
-          <button className="btn ghost" onClick={() => { setHeard(null); setI((i + 1) % list.length); }}><SkipForward size={18} /> Sonraki</button>
+          {rec === "rec"
+            ? <button className="btn coral" onClick={finish}><span className="rec-dot" /> {together ? "Birlikte söyle…" : "Şimdi sen söyle…"} <Square size={14} /></button>
+            : <button className="btn coral" disabled={rec !== "idle"} onClick={run}>{rec === "play" ? "Dinle… sonra sen" : rec === "wait" ? "Değerlendiriliyor…" : <><Mic size={18} /> {heard ? "Tekrar dene" : "Shadowing yap"}</>}</button>}
+          <button className="btn ghost" aria-label="Sonraki" onClick={() => go2(1)}><SkipForward size={18} /></button>
         </div>
-        {heard && (
+        {rec === "rec" && <div className="small muted">Söyle; susunca kendim bitiririm (ya da ■ bas).</div>}
+        {err && <div className="small" style={{ color: "var(--coral)", fontWeight: 600 }}>⚠️ {err}</div>}
+        {heard && heard.text && (
           <div className="col" style={{ gap: 6 }}>
             <div className="h2">{scoreOf(al)} / 100</div>
+            <div className="muted small">Duyulan: “{heard.text}”</div>
             <div className="row" style={{ justifyContent: "center" }}>
               {heard.audioUrl && <button className="btn sm ghost" onClick={() => new Audio(heard.audioUrl).play()}><Volume2 size={14} /> Kendi sesim</button>}
               <button className="btn sm ghost" onClick={() => speak(cur[1], { rate })}>🔊 Orijinal</button>
+              <button className="btn sm ghost" onClick={run}><RotateCcw size={14} /> Tekrar</button>
             </div>
           </div>
         )}
       </div>
       <div className="card small sub">
-        <b>Nasıl yapılır?</b> 1) Önce sadece dinle. 2) Parçalara dokunup tek tek tekrar et. 3) "Shadowing yap"a bas: ses çalarken <b>aynı anda</b> sen de söyle; yetişemezsen hızı düşür. 4) Kendi sesini dinleyip orijinalle karşılaştır.
+        <b>Nasıl yapılır?</b> 1) Önce sadece dinle. 2) Parçalara dokunup tek tek tekrar et. 3) <b>Dinle → sonra tekrar et</b>: cümle çalar, bitince mikrofon açılır, sen söylersin, susunca puanlanır. 4) Hazır olunca <b>Aynı anda söyle</b>: ses çalarken sen de birlikte söyle; yetişemezsen hızı düşür. 5) Kendi sesini dinleyip orijinalle karşılaştır.
       </div>
     </div>
   );

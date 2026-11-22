@@ -1,8 +1,9 @@
-import { BookOpen, GraduationCap, Quote, Library, Headphones, Mic, Theater, Repeat, Settings, MessageCircle, Clapperboard, Compass } from "lucide-react";
+import { BookOpen, GraduationCap, Quote, Library, Headphones, Mic, Theater, Repeat, Settings, MessageCircle, Clapperboard, Compass , Dices } from "lucide-react";
 import { PageHead } from "../components/ui";
 import { go } from "../lib/router";
 
 const ITEMS = [
+  ["/rastgele", "🎲 Rastgele", "Cümle, paragraf, kelime, deyim — bas gelsin", Dices, "amber"],
   ["/kelimeler", "Kelimeler", "20.000 kelime", BookOpen, "iris"],
   ["/gramer", "Gramer", "A1 → C1", GraduationCap, "mint"],
   ["/kaliplar", "Kalıplar", "Phrasal verb, deyim", Quote, "amber"],
