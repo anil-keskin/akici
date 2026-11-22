@@ -22,3 +22,8 @@ enabled = false
 # Yedek: Cloudflare Workers AI (hesapta günlük ücretsiz kota, anahtar gerekmez)
 [ai]
 binding = "AI"
+
+# Bulut yedeği: cihazda şifrelenmiş ilerleme kutuları (sunucu içini okuyamaz)
+[[kv_namespaces]]
+binding = "SYNC"
+id = "50c13bfee8144d7aac1e2517f7659c89"

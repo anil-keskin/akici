@@ -7,6 +7,7 @@ import { saveSettings, useSettings } from "../lib/settings";
 import { englishVoices, health, speak, type Health } from "../lib/speech";
 import { exportAll, importAll, kvGet, kvSet, resetPart, wipeAll } from "../lib/db";
 import { LEVELS, meta, type Meta } from "../lib/data";
+import { SyncCard } from "../components/SyncCard";
 
 export default function Settings() {
   const s = useSettings();
@@ -32,6 +33,7 @@ export default function Settings() {
   return (
     <div className="col" style={{ gap: 18, maxWidth: 820 }}>
       <PageHead title="Ayarlar" icon={<div className="ico iris"><SetI /></div>} />
+      <SyncCard />
       <Sec t="Profil">
         <Row l="Adın (isteğe bağlı, sadece bu cihazda)"><input className="input" value={name} maxLength={40} onChange={(e) => setName(e.target.value)} onBlur={() => kvSet("name", name.trim())} /></Row>
         <Row l="Seviyen"><select className="input" value={lv} onChange={(e) => { setLv(e.target.value); kvSet("level", e.target.value); }}>{LEVELS.map((l) => <option key={l}>{l}</option>)}</select></Row>
@@ -86,7 +88,7 @@ export default function Settings() {
 
       <Sec t="Gizlilik ve veriler (KVKK)" i={<ShieldCheck />}>
         <div className="small sub" style={{ lineHeight: 1.7 }}>
-          <b>Aydınlatma:</b> Lokilingo'nun hesabı, sunucu veritabanı, çerezi ve analitiği yoktur. İlerlemen, kartların ve sohbet geçmişin <b>sadece bu cihazda</b> (tarayıcı veritabanı) tutulur.
+          <b>Aydınlatma:</b> Lokilingo'nun hesabı, sunucu veritabanı, çerezi ve analitiği yoktur. İlerlemen, kartların ve sohbet geçmişin bu cihazda (tarayıcı veritabanı) tutulur. <b>Bulut yedeğini</b> açarsan bunların cihazda şifrelenmiş bir kopyası Cloudflare'de (ABD) saklanır; şifre anahtarı sadece senin kurtarma kodundur, biz içeriği göremeyiz. API anahtarları ve cihaz ayarları yedeğe girmez.
           Mikrofon sadece konuşma alıştırmasında açılır; telefon uygulamasında ses kısa kayıt olarak aracı sunucu üzerinden Groq'a (ABD) gönderilip yazıya çevrilir ve saklanmaz; yerel sunucu açıksa ses bu bilgisayarda Whisper ile çözülür ve kalıcı kaydedilmez. Sunucu kapalıysa tarayıcının konuşma tanıması kullanılır (Chrome: Google, Edge: Microsoft).
           AI sohbette yerel model seçiliyse metin bilgisayardan çıkmaz; bulut sağlayıcı seçersen metin o sağlayıcıya gider. <b>Loki AI</b> seçiliyse yazdığın metin Lokilingo'nun aracı sunucusu (Cloudflare, ABD) üzerinden Cloudflare Workers AI'ya (bazen Google Gemini'ye) iletilir; aracı sunucu metni kaydetmez ve loglamaz, sadece kötüye kullanımı önlemek için IP adresine ve rastgele bir cihaz numarasına göre dakikalık sayaç tutar. Bu yurtdışına aktarımdır (KVKK md. 9): sohbete kişisel bilgi yazma. İstediğin an verilerini dışa aktarabilir ya da tamamen silebilirsin (KVKK md. 11).
         </div>

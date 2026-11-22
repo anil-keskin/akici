@@ -76,6 +76,13 @@ export default function App() {
   const focus = base === "/ders" || base === "/basla" || (base === "/test");
   // İlk açılışta tanıtım ekranı: karar, veritabanından okunduktan SONRA verilir (yarış durumu olmasın).
   useEffect(() => {
+    // Bulut yedeği açıksa: başka cihazdaki yeni ilerlemeyi getir, sonra düzenli yedekle
+    import("./lib/sync").then((m) => m.startAutoSync());
+    const onSynced = () => location.reload();
+    window.addEventListener("lokilingo-synced", onSynced);
+    return () => window.removeEventListener("lokilingo-synced", onSynced);
+  }, []);
+  useEffect(() => {
     kvGet("onboarded", false).then((v) => { if (!v && base !== "/basla" && base !== "/ayarlar" && base !== "/test") go("/basla"); });
   }, [base]);
   const Page = pages[base] || pages["/"];

@@ -50,27 +50,45 @@ export async function kvGet<T>(k: string, def: T): Promise<T> {
 }
 export async function kvSet(k: string, v: unknown) { await db.kv.put({ k, v }); }
 
+// Cihaza özel ayarlar (anahtar, sunucu, ses) yedeğe girmez; geri yüklerken bu cihazdakiler korunur
+const DEVICE_FIELDS = ["aiKey", "serverToken", "server", "aiBase", "aiProvider", "aiModel", "voiceURI", "stt"];
+
 export async function exportAll(): Promise<string> {
-  const [cards, logs, days, kv, chats, progress] = await Promise.all([
-    db.cards.toArray(), db.logs.toArray(), db.days.toArray(), db.kv.toArray(), db.chats.toArray(), db.progress.toArray(),
+  const [cards, logs, days, kv, chats, progress, media] = await Promise.all([
+    db.cards.toArray(), db.logs.toArray(), db.days.toArray(), db.kv.toArray(), db.chats.toArray(), db.progress.toArray(), db.media.toArray(),
   ]);
-  // Anahtarlar yedeğe girmez
-  const safeKv = kv.filter((x) => !/key|token|secret/i.test(x.k));
-  return JSON.stringify({ app: "akici", v: 1, at: new Date().toISOString(), cards, logs, days, kv: safeKv, chats, progress });
+  // Anahtarlar ve yedek kodu yedeğe girmez
+  const safeKv = kv.filter((x) => !/key|token|secret|^sync./i.test(x.k)).map((x) => {
+    if (x.k !== "settings" || !x.v || typeof x.v !== "object") return x;
+    const v = { ...(x.v as Record<string, unknown>) }; for (const f of DEVICE_FIELDS) delete v[f];
+    return { k: x.k, v };
+  });
+  // Sayfalarda kaldığın yerler (okuma konumu, kelime sayfası…)
+  const pos: Record<string, string> = {};
+  try { for (let i = 0; i < localStorage.length; i++) { const k = localStorage.key(i)!; if (k.startsWith("pos:")) pos[k] = localStorage.getItem(k)!; } } catch { /* yok */ }
+  return JSON.stringify({ app: "akici", v: 2, at: new Date().toISOString(), cards, logs, days, kv: safeKv, chats, progress, media, pos });
 }
 
 export async function importAll(json: string) {
   const d = JSON.parse(json);
   if (d?.app !== "akici") throw new Error("Bu bir Lokilingo yedeği değil");
-  await db.transaction("rw", [db.cards, db.logs, db.days, db.kv, db.chats, db.progress], async () => {
+  const local = ((await db.kv.get("settings"))?.v || {}) as Record<string, unknown>;
+  const kv = (d.kv || []).filter((x: KV) => !/key|token|secret|^sync./i.test(x.k)).map((x: KV) => {
+    if (x.k !== "settings" || !x.v || typeof x.v !== "object") return x;
+    const v = { ...(x.v as Record<string, unknown>) }; for (const f of DEVICE_FIELDS) { if (f in local) v[f] = local[f]; else delete v[f]; }
+    return { k: x.k, v };
+  });
+  await db.transaction("rw", [db.cards, db.logs, db.days, db.kv, db.chats, db.progress, db.media], async () => {
     const revive = (c: CardRow) => ({ ...c, card: { ...c.card, due: new Date(c.card.due), last_review: c.card.last_review ? new Date(c.card.last_review) : undefined } });
     await db.cards.bulkPut((d.cards || []).map(revive));
     await db.logs.bulkPut(d.logs || []);
     await db.days.bulkPut(d.days || []);
-    await db.kv.bulkPut(d.kv || []);
+    await db.kv.bulkPut(kv);
     await db.chats.bulkPut(d.chats || []);
     await db.progress.bulkPut(d.progress || []);
+    if (Array.isArray(d.media)) await db.media.bulkPut(d.media);
   });
+  try { for (const [k, v] of Object.entries(d.pos || {})) if (k.startsWith("pos:") && typeof v === "string") localStorage.setItem(k, v); } catch { /* yok */ }
 }
 
 export async function wipeAll() {

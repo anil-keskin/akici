@@ -51,3 +51,11 @@
 - Kötüye kullanım: IP başına 12/dk, cihaz başına 8/dk (Workers rate limit), 30 mesaj × 6000 karakter, 40 KB gövde, sabit model, max 1200 token.
 - Gizlilik: içerik loglanmaz (observability kapalı); Settings aydınlatma metni yurtdışı aktarımı (KVKK md. 9) açıklar.
 - Zayıf nokta: cihaz numarası istemci tarafından üretilir, taklit edilebilir; asıl sınır IP sınırı + Gemini kotası.
+
+## Bulut yedeği / kaldığın yerden devam (worker `/sync/<id>`, 22 Kas)
+- **Hesap yok, e-posta yok.** Cihaz 20 haneli rastgele kurtarma kodu üretir (~100 bit, `crypto.getRandomValues`).
+- **Uçtan uca şifreleme:** ilerleme cihazda gzip + AES-GCM (anahtar = SHA-256("lokilingo-sync-key:"+kod)). Sunucu sadece şifreli kutuyu ve kimliği (SHA-256("lokilingo-sync-id:"+kod)) görür; kod ve içerik sunucuya hiç gitmez.
+- **Yedeğe girmeyenler:** API anahtarı, LAN erişim kodu, sunucu/sağlayıcı/ses ayarları (`DEVICE_FIELDS`), `sync.*`. Geri yüklerken cihazdaki bu alanlar korunur.
+- **Sunucu:** Cloudflare KV `SYNC`, kutu ≤ 8 MB, IP başına dakikada 12 istek, 400 gün kullanılmazsa TTL ile silinir. "Kapat ve sil" düğmesi DELETE ile hemen siler (KVKK md. 7/11).
+- **Tehdit:** kodu ele geçiren ilerlemeyi okuyabilir/üzerine yazabilir (kod = tek anahtar). Kabul edildi: içerik kişisel veri değil (kelime ilerlemesi, sohbet geçmişi); kullanıcıya "kodu paylaşma, sohbete kişisel bilgi yazma" uyarısı var. Kod tahmini 2^100 denemede imkânsız.
+- **Çakışma:** son yazan kazanır. Açılışta buluttaki daha yeniyse ve bu cihazda değişiklik yoksa otomatik çekilir. Her kişi kendi kodunu kullanır.

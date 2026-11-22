@@ -29,9 +29,10 @@ export default function Onboarding() {
           <Mascot size={130} />
           <h1 className="h1">Lokilingo'ya hoş geldin!</h1>
           <p className="sub" style={{ fontSize: 18 }}>20.000 kelime, gerçek cümleler, gramer, dinleme, telaffuz ve yapay zekâ öğretmen — hepsi tek yerde, reklamsız ve ücretsiz.</p>
-          <div className="card small row" style={{ textAlign: "left", alignItems: "flex-start" }}><ShieldCheck color="var(--mint)" style={{ flex: "none" }} />Hesap açmana gerek yok. İlerlemen sadece bu cihazda tutulur; hiçbir yere gönderilmez.</div>
+          <div className="card small row" style={{ textAlign: "left", alignItems: "flex-start" }}><ShieldCheck color="var(--mint)" style={{ flex: "none" }} />Hesap açmana gerek yok. İlerlemen bu cihazda tutulur; istersen şifreli bulut yedeğini açıp telefon değişse de kaldığın yerden devam edersin.</div>
           <input className="input" placeholder="Adın (isteğe bağlı)" value={name} onChange={(e) => setName(e.target.value)} maxLength={40} />
           <button className="btn primary big block" onClick={() => setStep(1)}>Başlayalım <ArrowRight /></button>
+          <button className="btn ghost block" onClick={() => go("/ayarlar")}>Daha önce kullandım, kurtarma kodum var</button>
         </div>
       )}
       {step === 1 && (

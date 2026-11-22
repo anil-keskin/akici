@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Flame, Repeat, Sparkles, BookOpen, GraduationCap, Headphones, Mic, Theater, MessageCircle, Library, Quote, ShieldCheck, Trophy, Clock, Clapperboard, Compass, Check, Lock, Star, Gift } from "lucide-react";
+import { Flame, Repeat, Sparkles, BookOpen, GraduationCap, Headphones, Mic, Theater, MessageCircle, Library, Quote, ShieldCheck, Trophy, Clock, Clapperboard, Compass, Check, Lock, Star, Gift, Cloud } from "lucide-react";
 import { AudioBtn, Bar, Lv, Mascot, Ring } from "../components/ui";
 import { WordSheet } from "../components/WordSheet";
 import { counts } from "../lib/srs";
@@ -33,6 +33,8 @@ export default function Home() {
   const [pod, setPod] = useState<Phrase | null>(null);
   const [open, setOpen] = useState<Word | null>(null);
   const [name, setName] = useState("");
+  const [noBackup, setNoBackup] = useState(false);
+  useEffect(() => { kvGet("sync.code", "").then((c) => setNoBackup(!c)); }, []);
   const [level, setLevel] = useState("A1");
   const [learned, setLearned] = useState(0);
 
@@ -84,6 +86,14 @@ export default function Home() {
           </Ring></div>
         </div>
       </div>
+
+      {noBackup && (
+        <button className="card row" style={{ gap: 12, textAlign: "left", cursor: "pointer", border: "2px dashed var(--mint)" }} onClick={() => go("/ayarlar")}>
+          <Cloud color="var(--mint)" style={{ flex: "none" }} />
+          <div className="grow"><b>İlerlemeni kaybetme</b><div className="muted small">Bulut yedeğini aç: telefon değişse de kaldığın yerden devam et. Hesap gerekmez.</div></div>
+          <span className="btn sm mint">Aç</span>
+        </button>
+      )}
 
       <Path learned={learned} />
 

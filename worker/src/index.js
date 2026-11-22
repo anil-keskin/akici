@@ -4,6 +4,7 @@
 // Sırayla denenir: ücretsiz kotada açık olan ilk model kullanılır
 const MODELS = ["gemini-flash-latest", "gemini-flash-lite-latest", "gemini-2.5-flash", "gemini-2.5-flash-lite", "gemini-2.0-flash"];
 const MODEL = MODELS[0];
+let geminiDeadUntil = 0; // bu Worker kopyasında Gemini geçici olarak atlanır
 const CF_MODEL = "@cf/meta/llama-3.3-70b-instruct-fp8-fast";
 const UPSTREAM = "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions";
 // YouTube araması: resmi YouTube Data API v3 (anahtar gizli ayarda: YOUTUBE_KEY). Sadece altyazılı, aile dostu videolar.
@@ -70,7 +71,42 @@ async function stt(req, env) {
   return json({ text: String(d.text || "").trim() });
 }
 
-const CORS = { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Methods": "GET, POST, OPTIONS", "Access-Control-Allow-Headers": "Content-Type, X-Akici-Device", "Access-Control-Max-Age": "86400" };
+// Bulut yedeği: ilerleme CİHAZDA şifrelenir (AES-GCM, anahtar = kurtarma kodu). Burada sadece okunamaz bir kutu durur.
+// Kimlik = kodun SHA-256 özeti (kodun kendisi sunucuya hiç gelmez). E-posta/isim yok. 400 gün kullanılmazsa kendiliğinden silinir.
+const SYNC_TTL = 400 * 86400;
+async function sync(req, url, env) {
+  const id = url.pathname.slice("/sync/".length);
+  if (!/^[a-f0-9]{64}$/.test(id)) return json({ error: "geçersiz kimlik" }, 400);
+  const ip = req.headers.get("CF-Connecting-IP") || "?";
+  const ok = await env.PER_IP.limit({ key: "sync:" + ip });
+  if (!ok.success) return json({ error: "çok hızlı; bir dakika bekle" }, 429);
+  if (req.method === "GET" && url.searchParams.has("meta")) {
+    const ts = await env.SYNC.get("m:" + id);
+    return ts ? json({ ts: Number(ts) }) : json({ error: "yedek yok" }, 404);
+  }
+  if (req.method === "GET") {
+    const v = await env.SYNC.get("d:" + id, "arrayBuffer");
+    if (!v) return json({ error: "Bu koda ait yedek bulunamadı" }, 404);
+    return new Response(v, { headers: { ...CORS, "Content-Type": "application/octet-stream", "Cache-Control": "no-store" } });
+  }
+  if (req.method === "PUT") {
+    const len = Number(req.headers.get("Content-Length") || 0);
+    if (!len || len > 8_000_000) return json({ error: "yedek çok büyük" }, 413);
+    const buf = await req.arrayBuffer();
+    if (buf.byteLength > 8_000_000 || buf.byteLength < 29) return json({ error: "geçersiz yedek" }, 400);
+    const ts = Date.now();
+    await env.SYNC.put("d:" + id, buf, { expirationTtl: SYNC_TTL });
+    await env.SYNC.put("m:" + id, String(ts), { expirationTtl: SYNC_TTL });
+    return json({ ok: true, ts });
+  }
+  if (req.method === "DELETE") {
+    await Promise.all([env.SYNC.delete("d:" + id), env.SYNC.delete("m:" + id)]);
+    return json({ ok: true });
+  }
+  return json({ error: "bulunamadı" }, 404);
+}
+
+const CORS = { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS", "Access-Control-Allow-Headers": "Content-Type, X-Akici-Device", "Access-Control-Max-Age": "86400" };
 
 const json = (obj, status = 200) => new Response(JSON.stringify(obj), { status, headers: { ...CORS, "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store" } });
 
@@ -82,6 +118,7 @@ export default {
     if (req.method === "GET" && url.pathname === "/yt") return ytSearch(url, req, env);
     if (req.method === "GET" && url.pathname === "/ytfeed") return ytFeed(url);
     if (req.method === "POST" && url.pathname === "/stt") return stt(req, env);
+    if (url.pathname.startsWith("/sync/")) return sync(req, url, env);
     if (req.method !== "POST" || url.pathname !== "/chat") return json({ error: "bulunamadı" }, 404);
 
     const ip = req.headers.get("CF-Connecting-IP") || "?";
@@ -101,22 +138,10 @@ export default {
     }
     const maxTokens = Math.min(Math.max(Number(body.max_tokens) || 600, 50), 1200);
 
-    const call = (model, fmt) => fetch(UPSTREAM, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${env.GEMINI_KEY}` },
-      body: JSON.stringify({ model, messages: clean, max_tokens: maxTokens, ...(fmt ? { response_format: { type: "json_object" } } : {}) }),
-    });
-    let r, why = "";
-    for (const model of env.GEMINI_KEY ? MODELS : []) {
-      r = await call(model, !!body.json);
-      if (body.json && r.status === 400) r = await call(model, false);
-      if (r.ok) break;
-      why = (await r.text().catch(() => "")).slice(0, 200);
-      if (![400, 402, 403, 404].includes(r.status)) break; // kota/sunucu hatası: başka model deneme
-    }
-    // B planı: Groq (ücretsiz kota, anahtar GROQ_KEY) — Gemini olmazsa
-    if ((!r || !r.ok) && env.GROQ_KEY) {
-      for (const model of ["llama-3.3-70b-versatile", "openai/gpt-oss-120b", "openai/gpt-oss-20b"]) {
+    const tried = [];
+    // A planı: Groq (en hızlı; ücretsiz kota). Her modelin kotası ayrı, biri dolarsa sıradakine geç.
+    if (env.GROQ_KEY) {
+      for (const model of ["openai/gpt-oss-120b", "openai/gpt-oss-20b", "llama-3.1-8b-instant"]) {
         const g = await fetch("https://api.groq.com/openai/v1/chat/completions", {
           method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${env.GROQ_KEY}` },
           body: JSON.stringify({
@@ -125,24 +150,33 @@ export default {
             ...(model.startsWith("openai/") ? { reasoning_effort: "low", reasoning_format: "hidden", max_completion_tokens: maxTokens + 1500 } : { max_tokens: maxTokens }),
           }),
         });
-        if (g.ok) { const gd = await g.json(); return json({ content: gd.choices?.[0]?.message?.content ?? "", via: "groq:" + model }); }
-        if (![400, 404].includes(g.status)) break; // kota doldu vb.: sonraki plana geç
+        if (g.ok) { const gd = await g.json(); return json({ content: gd.choices?.[0]?.message?.content ?? "", via: "groq:" + model, tried }); }
+        tried.push(`${model}:${g.status}`);
+        if (g.status === 401) break; // anahtar geçersiz
       }
     }
-    if (!r || !r.ok) {
-      // C planı: Cloudflare Workers AI (hesapta günlük ücretsiz kota)
-      try {
-        let out;
-        try { out = await env.AI.run(CF_MODEL, { messages: clean, max_tokens: maxTokens }); }
-        catch { out = await env.AI.run("@cf/meta/llama-3.1-8b-instruct-fast", { messages: clean, max_tokens: maxTokens }); } // daha hafif model
-        const text = typeof out?.response === "string" ? out.response : JSON.stringify(out?.response ?? "");
-        return json({ content: text, via: "cf" });
-      } catch (e) {
-        if (String(e).includes("4006") || String(e).toLowerCase().includes("neuron")) return json({ error: "günlük ücretsiz kota doldu; yarın tekrar dene" }, 429);
-        return json({ error: "yapay zekâ şu an yanıt vermiyor", detail: why.replace(/AIza[\w-]+/g, "***") }, 502);
+    // B planı: Gemini (anahtar varsa). Ödeme/kota hatası alınca 30 dk hiç deneme (boşa bekletmesin).
+    if (env.GEMINI_KEY && Date.now() > geminiDeadUntil) {
+      for (const model of MODELS.slice(0, 2)) {
+        const r = await fetch(UPSTREAM, {
+          method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${env.GEMINI_KEY}` },
+          body: JSON.stringify({ model, messages: clean, max_tokens: maxTokens, ...(body.json ? { response_format: { type: "json_object" } } : {}) }),
+        });
+        if (r.ok) { const d = await r.json(); return json({ content: d.choices?.[0]?.message?.content ?? "", via: "gemini:" + model, tried }); }
+        tried.push(`${model}:${r.status}`);
+        if ([401, 402, 403, 429].includes(r.status)) { geminiDeadUntil = Date.now() + 30 * 60_000; break; }
       }
     }
-    const d = await r.json();
-    return json({ content: d.choices?.[0]?.message?.content ?? "" });
+    // C planı: Cloudflare Workers AI (hesapta günlük ücretsiz kota)
+    try {
+      let out;
+      try { out = await env.AI.run(CF_MODEL, { messages: clean, max_tokens: maxTokens }); }
+      catch { out = await env.AI.run("@cf/meta/llama-3.1-8b-instruct-fast", { messages: clean, max_tokens: maxTokens }); } // daha hafif model
+      const text = typeof out?.response === "string" ? out.response : JSON.stringify(out?.response ?? "");
+      return json({ content: text, via: "cf", tried });
+    } catch (e) {
+      if (String(e).includes("4006") || String(e).toLowerCase().includes("neuron")) return json({ error: "günlük ücretsiz kota doldu; yarın tekrar dene" }, 429);
+      return json({ error: "yapay zekâ şu an yanıt vermiyor", tried }, 502);
+    }
   },
 };
