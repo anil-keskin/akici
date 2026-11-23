@@ -1,4 +1,5 @@
 import { RotateCcw } from "lucide-react";
+import { ART } from "../lib/artifact";
 import { AKICI_AI } from "../lib/ai";
 import { useEffect, useState } from "react";
 import { Settings as SetI, Download, Upload, Trash2, ShieldCheck, Server, Sparkles, Volume2, Info } from "lucide-react";
@@ -33,7 +34,7 @@ export default function Settings() {
   return (
     <div className="col" style={{ gap: 18, maxWidth: 820 }}>
       <PageHead title="Ayarlar" icon={<div className="ico iris"><SetI /></div>} />
-      <SyncCard />
+      {!ART ? <SyncCard /> : <div className="card small" style={{ background: "var(--iris-soft)" }}>Bu, Lokilingo'nun <b>Claude Yapıtlar</b> sürümü: yapay zekâ olarak Claude kullanılır, ilerlemen bu tarayıcıda saklanır. Telefon ve tam sürüm için: <b>anil-keskin.github.io/akici</b></div>}
       <Sec t="Profil">
         <Row l="Adın (isteğe bağlı, sadece bu cihazda)"><input className="input" value={name} maxLength={40} onChange={(e) => setName(e.target.value)} onBlur={() => kvSet("name", name.trim())} /></Row>
         <Row l="Seviyen"><select className="input" value={lv} onChange={(e) => { setLv(e.target.value); kvSet("level", e.target.value); }}>{LEVELS.map((l) => <option key={l}>{l}</option>)}</select></Row>
@@ -56,16 +57,16 @@ export default function Settings() {
           <option value="auto">Otomatik (önce yerel Whisper)</option><option value="whisper">Sadece yerel Whisper (gizli)</option><option value="browser">Tarayıcı (Google/Microsoft)</option></select></Row>
       </Sec>
 
-      <Sec t="Yerel sunucu" i={<Server />}>
+      {!ART && <Sec t="Yerel sunucu" i={<Server />}>
         <div className="small" style={{ color: h?.ok ? "var(--mint)" : "var(--coral)", fontWeight: 700 }}>
           {h?.ok ? `Bağlı · Whisper: ${h.whisper} · Ollama: ${h.ollama ? "açık" : "kapalı"}` : "Bağlı değil (uygulama yine çalışır; AI sohbet ve yerel puanlama kapalı)."}
         </div>
         <Row l="Sunucu adresi (boş = bu adres)"><input className="input" placeholder="ör. http://192.168.1.20:8790" value={s.server} onChange={(e) => saveSettings({ server: e.target.value.trim() })} /></Row>
         <Row l="Erişim kodu (sadece LAN/telefon modu)"><input className="input" value={s.serverToken} onChange={(e) => saveSettings({ serverToken: e.target.value.trim() })} /></Row>
         <div className="muted tiny">Telefondan bağlanmak için bilgisayarda <b>baslat-lan.bat</b> çalıştır; ekranda yazan adresi ve kodu buraya gir.</div>
-      </Sec>
+      </Sec>}
 
-      <Sec t="Yapay zekâ" i={<Sparkles />}>
+      {!ART && <Sec t="Yapay zekâ" i={<Sparkles />}>
         <Row l="Sağlayıcı"><select className="input" value={presetOf(s)} onChange={(e) => {
           const pr = PRESETS.find((x) => x.id === e.target.value)!;
           saveSettings({ aiProvider: pr.p, aiModel: pr.model, ...(pr.base ? { aiBase: pr.base } : {}) });
@@ -84,7 +85,7 @@ export default function Settings() {
             </div>
           </>
         )}
-      </Sec>
+      </Sec>}
 
       <Sec t="Gizlilik ve veriler (KVKK)" i={<ShieldCheck />}>
         <div className="small sub" style={{ lineHeight: 1.7 }}>

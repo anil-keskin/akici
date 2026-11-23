@@ -1,6 +1,7 @@
 // Dizi & Şarkı: telifsiz şarkılar, dizi kalıpları, günlük diyaloglar ve KULLANICININ KENDİ altyazı/söz dosyaları.
 // Telifli söz/altyazı bizde barındırılmaz; kullanıcı kendi dosyasını yükler, veri sadece bu cihazda (IndexedDB) kalır.
 import { useEffect, useMemo, useRef, useState } from "react";
+import { ART } from "../lib/artifact";
 import { MonitorPlay, Search, Music, Clapperboard, MessagesSquare, Upload, Play, Square, Languages, Gamepad2, Plus, Trash2, ArrowLeft, Check, Volume2 } from "lucide-react";
 import { AudioBtn, Lv, PageHead, Spinner, toast, confetti } from "../components/ui";
 import { findWord, load, shuffle, type Word, trShow } from "../lib/data";
@@ -31,12 +32,12 @@ const TABS = [
 ] as const;
 
 export default function Media({ id, params }: { id?: string; params: URLSearchParams }) {
-  const tab = id || "youtube";
+  const tab = id || (ART ? "sarki" : "youtube");
   return (
     <div>
       <PageHead title="Dizi & Şarkı" sub="Şarkı sözleri, dizi replikleri ve gerçek diyaloglarla İngilizce: dinle, boşluk doldur, kelime topla." icon={<div className="ico coral"><Clapperboard /></div>} />
       <div className="scroll-x" style={{ marginBottom: 16 }}>
-        {TABS.map((t) => <button key={t.k} className={`chip ${tab === t.k ? "on" : ""}`} onClick={() => go(`/medya/${t.k}`)}><t.icon size={15} /> {t.label}</button>)}
+        {TABS.filter((t) => !ART || (t.k !== "youtube" && t.k !== "podcast")).map((t) => <button key={t.k} className={`chip ${tab === t.k ? "on" : ""}`} onClick={() => go(`/medya/${t.k}`)}><t.icon size={15} /> {t.label}</button>)}
       </div>
       {tab === "youtube" && <YouTube v={params.get("v")} title={params.get("t") || ""} />}
       {tab === "podcast" && <Podcasts feed={params.get("f")} title={params.get("t") || ""} />}
@@ -166,7 +167,7 @@ function Songs({ open }: { open: string | null }) {
   if (s) return <LinePlayer title={s.title} sub={s.by} lines={s.lines.map(([en, tr]) => ({ en, tr }))} back="/medya/sarki" />;
   return (
     <>
-    <SongSearch />
+    {!ART && <SongSearch />}
     <div className="muted tiny" style={{ marginBottom: 8 }}>UYGULAMADAKİ ÖĞRETİCİ ŞARKILAR</div>
     <div className="grid g3">
       {songs.map((x) => (

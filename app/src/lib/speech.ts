@@ -2,6 +2,7 @@
 // Öncelik: önceden üretilmiş doğal ses (Kokoro) → tarayıcı/Android sesi.
 // Tanıma: yerel Whisper sunucusu (ses bilgisayardan çıkmaz) → tarayıcı tanıması (Google/Microsoft'a gider, onaylı).
 import { getSettings } from "./settings";
+import { ART, dictReady, type Dictation } from "./artifact";
 import { addStat } from "./stats";
 
 export function fnv1a(s: string): string {
@@ -153,7 +154,7 @@ export async function serverPost<T>(path: string, body: BodyInit, json = true): 
 }
 
 // ---------------------------------------------------------------- kayıt + tanıma
-export interface Heard { text: string; words?: { w: string; p: number }[]; audioUrl?: string; engine: "whisper" | "browser" | "native" | "cloud" }
+export interface Heard { text: string; words?: { w: string; p: number }[]; audioUrl?: string; engine: "whisper" | "browser" | "native" | "cloud" | "dictation" }
 type SR = { lang: string; interimResults: boolean; maxAlternatives: number; continuous: boolean; start(): void; stop(): void; abort(): void; onresult: ((e: any) => void) | null; onerror: ((e: any) => void) | null; onend: (() => void) | null };
 export function browserSTT(): boolean { return !!((window as any).SpeechRecognition || (window as any).webkitSpeechRecognition); }
 
@@ -189,7 +190,31 @@ export class Listener {
   /** Konuşurken ara metin (ekranda canlı göstermek için) */
   onPartial?: (t: string) => void;
 
+  private dict: Dictation | null = null;
+  private dictOff: (() => void)[] = [];
   async start(maxSec = 20, onAutoStop?: () => void) {
+    // Claude Yapıtları: Claude dikte (start() tıklamanın içinde, hiçbir şey beklenmeden çağrılmalı)
+    if (ART) {
+      const d = dictReady;
+      if (!d) throw new Error("Mikrofon bu görünümde yok (Chrome/Edge ya da Claude masaüstü uygulamasında açılmalı). Yazarak devam edebilirsin.");
+      this.engine = "dictation"; this.dict = d; this.srText = ""; this.t0 = Date.now();
+      let last = Date.now(), got = false;
+      const p = d.start();
+      this.dictOff = [
+        d.onPartial(({ text }) => { last = Date.now(); this.onPartial?.(text); }),
+        d.onFinal(({ text }) => { last = Date.now(); got = true; this.srText += " " + text; this.onPartial?.(this.srText.trim()); }),
+      ];
+      // Sessizlik: söyledikten sonra 2,2 sn yeni söz gelmezse ya da 30 sn hiç konuşma yoksa bitir
+      this.timer = window.setInterval(() => {
+        const now = Date.now();
+        if ((got && now - last > 2200) || (!got && now - this.t0 > 30000) || now - this.t0 > maxSec * 1000) { clearInterval(this.timer); onAutoStop?.(); }
+      }, 200);
+      await p.catch((e: { code?: string; message?: string }) => {
+        clearInterval(this.timer); this.dictOff.forEach((f) => f());
+        throw new Error(e?.code === "not_granted" ? "Mikrofon izni verilmedi; yazarak devam edebilirsin." : `Mikrofon açılamadı: ${e?.message || e?.code || "bilinmeyen hata"}`);
+      });
+      return;
+    }
     const s = getSettings();
     const h = s.stt === "browser" ? { ok: false } : await health();
     this.engine = h.ok && (h as Health).whisper && !/kapalı|yok|error/i.test(String((h as Health).whisper)) ? "whisper" : native.listen ? "native" : "browser";
@@ -287,6 +312,13 @@ export class Listener {
 
   async stop(): Promise<Heard> {
     clearTimeout(this.timer);
+    if (this.engine === "dictation") {
+      clearInterval(this.timer);
+      await this.dict?.stop().catch(() => null); // son kelimeler gelsin
+      this.dictOff.forEach((f) => f()); this.dictOff = [];
+      addStat({ speakSec: Math.round((Date.now() - this.t0) / 1000) });
+      return { text: this.srText.trim(), engine: "dictation" };
+    }
     if (this.engine === "native") {
       if (native.listenStart && native.listenStop) {
         await native.listenStop();
@@ -325,6 +357,7 @@ export class Listener {
   }
 
   cancel() {
+    if (this.engine === "dictation") { clearInterval(this.timer); this.dict?.stop().catch(() => null); this.dictOff.forEach((f) => f()); this.dictOff = []; return; }
     clearTimeout(this.timer); this.stopWatch();
     try { this.rec?.stop(); } catch { /* */ }
     try { this.sr?.abort(); } catch { /* */ }

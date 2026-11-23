@@ -1,5 +1,6 @@
 // Keşfet: her gün yeni, gerçek İngilizce içerik. Vikipedi'nin günlük akışı (CC BY-SA) + yapay zekânın seviyene göre yazdığı yazılar.
 import { useEffect, useState } from "react";
+import { ART } from "../lib/artifact";
 import { Compass, RefreshCw, ArrowLeft, Sparkles, Wand2 } from "lucide-react";
 import { Lv, PageHead, Spinner, toast } from "../components/ui";
 import { TapText } from "../components/TapText";
@@ -108,7 +109,7 @@ async function spaceNews(page: number): Promise<Item[]> {
 }
 
 export default function Explore({ id }: { id?: string; params: URLSearchParams }) {
-  const [cat, setCat] = useState(id || "news");
+  const [cat, setCat] = useState(id || (ART ? "science" : "news"));
   const [items, setItems] = useState<Item[] | null>(null);
   const [err, setErr] = useState("");
   const [open, setOpen] = useState<Item | null>(null);
@@ -210,10 +211,12 @@ export default function Explore({ id }: { id?: string; params: URLSearchParams }
         <span className="muted tiny" style={{ alignSelf: "center" }}>SEVİYEM:</span>
         {["A1", "A2", "B1", "B2", "C1", "C2"].map((l) => <button key={l} className={`chip ${lv === l ? "on" : ""}`} onClick={() => setLv(l)}>{l}</button>)}
       </div>
+      {!ART && <>
       <div className="muted tiny" style={{ marginBottom: 6 }}>GERÇEK İÇERİK (Vikipedi, haberler — istediğin an yenile)</div>
       <div className="scroll-x" style={{ marginBottom: 10 }}>
         {WIKI_CATS.map((c) => <button key={c.k} className={`chip ${cat === c.k ? "on" : ""}`} onClick={() => loadCat(c.k)}>{c.label}</button>)}
       </div>
+      </>}
       <div className="muted tiny" style={{ marginBottom: 6 }}>LOKİ SENİN İÇİN YAZSIN (seviyene göre)</div>
       <div className="scroll-x" style={{ marginBottom: 16 }}>
         {AI_CATS.map((c) => <button key={c.k} className={`chip ${cat === c.k ? "on" : ""}`} onClick={() => loadCat(c.k)}>{c.label}</button>)}

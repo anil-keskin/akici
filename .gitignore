@@ -25,3 +25,8 @@ server/erisim-kodu.txt
 worker/.dev.vars
 worker/.wrangler/
 Lokilingo.apk
+
+# Claude Yapıtları derlemesi (scripts/build-artifact.mjs üretir)
+app/dist-artifact/
+app/artifact-out/
+app/artifact-files.json

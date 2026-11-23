@@ -2,11 +2,13 @@ import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import { VitePWA } from "vite-plugin-pwa";
 
+// Claude Yapıtları sürümü: VITE_ARTIFACT=1 → service worker/PWA yok, çıktı dist-artifact (scripts/build-artifact.mjs paketler)
+const ART = process.env.VITE_ARTIFACT === "1";
 export default defineConfig({
   base: "./",
   plugins: [
     react(),
-    VitePWA({
+    !ART && VitePWA({
       registerType: "autoUpdate",
       includeAssets: ["icon.svg", "icon-192.png", "icon-512.png"],
       manifest: {
@@ -32,5 +34,5 @@ export default defineConfig({
     }),
   ],
   server: { host: "127.0.0.1", port: 5173, proxy: { "/api": "http://127.0.0.1:8790" } },
-  build: { target: "es2020", chunkSizeWarningLimit: 900 },
+  build: { target: "es2020", chunkSizeWarningLimit: 900, ...(ART ? { outDir: "dist-artifact", copyPublicDir: false } : {}) },
 });

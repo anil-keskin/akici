@@ -1,6 +1,7 @@
 // Yapay zekâ öğretmeni. Varsayılan: bu bilgisayardaki Ollama (yerel sunucu üzerinden, metin dışarı çıkmaz).
 // İsteğe bağlı: OpenAI uyumlu ya da Anthropic API (kullanıcının kendi anahtarıyla, yurtdışı aktarım uyarılı).
 import { getSettings } from "./settings";
+import { ART, claudeChat } from "./artifact";
 import { serverPost } from "./speech";
 
 export type Msg = { role: "user" | "assistant" | "system"; content: string };
@@ -71,6 +72,8 @@ function deviceId(): string {
 }
 
 async function raw(messages: Msg[], maxTokens: number, json: boolean): Promise<string> {
+  // Claude Yapıtları sürümü: yapay zekâ doğrudan Claude (dış sunucuya erişim yok)
+  if (ART) return claudeChat(messages, json, maxTokens <= 500);
   const s = getSettings();
   if (s.aiProvider === "local") {
     const r = await serverPost<{ content: string }>("/api/chat", JSON.stringify({ model: s.aiModel || "qwen3:8b", messages, max_tokens: maxTokens, json }));

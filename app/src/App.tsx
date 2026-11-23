@@ -1,4 +1,5 @@
 import { motion } from "motion/react";
+import { ART } from "./lib/artifact";
 import { lazy, Suspense, useEffect, type ComponentType } from "react";
 import {
   Home as HomeI, BookOpen, Repeat, GraduationCap, Quote, Headphones, Mic, BookMarked, Theater, MessageCircle,
@@ -89,7 +90,7 @@ export default function App() {
   // İlk açılışta tanıtım ekranı: karar, veritabanından okunduktan SONRA verilir (yarış durumu olmasın).
   useEffect(() => {
     // Bulut yedeği açıksa: başka cihazdaki yeni ilerlemeyi getir, sonra düzenli yedekle
-    import("./lib/sync").then((m) => m.startAutoSync());
+    if (!ART) import("./lib/sync").then((m) => m.startAutoSync());
     const onGoal = () => { confetti(); haptic("win"); toast("🎉 Günlük hedef tamam! Loki seninle gurur duyuyor."); };
     window.addEventListener("akici-goal", onGoal);
     const onSynced = () => location.reload();

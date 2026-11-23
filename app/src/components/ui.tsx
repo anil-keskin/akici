@@ -1,4 +1,5 @@
 import { useEffect, useState, type ReactNode } from "react";
+import { ART } from "../lib/artifact";
 import { Volume2, Snail, Loader2, X, Mic, ShieldCheck } from "lucide-react";
 import { speak, stopSpeaking } from "../lib/speech";
 import { kvGet, kvSet } from "../lib/db";
@@ -166,6 +167,7 @@ export function useMicConsent(): [boolean, () => Promise<boolean>, ReactNode] {
   useEffect(() => { kvGet("micConsent", false).then(setOk); }, []);
   // Onay kayıtlıysa bir daha sorma (eski bir ekran durumu yüzünden tekrar sorulmasın diye her seferinde kayda bakılır)
   const request = async () => {
+    if (ART) return true;
     if (ok || (await kvGet("micConsent", false))) { setOk(true); return true; }
     return new Promise<boolean>((res) => {
       setAsk(() => (v: boolean) => { setAsk(null); if (v) { kvSet("micConsent", true); setOk(true); } res(v); });

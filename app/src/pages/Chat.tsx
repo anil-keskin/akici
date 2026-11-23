@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { ART } from "../lib/artifact";
 import { Send, Mic, Square, Volume2, VolumeX, Trash2, Settings2, Loader2, Phone, PhoneOff, Languages } from "lucide-react";
 import { PageHead, useMicConsent } from "../components/ui";
 import { Avatar } from "../components/Avatar";
@@ -116,7 +117,7 @@ export default function Chat({ params }: { params: URLSearchParams }) {
       lastAi.current = line.content;
       await say(MODES[mode].json ? line.content : line.content.split("\n").filter((l) => !/[çğışöüÇĞİŞÖÜ]/.test(l)).join(" ").slice(0, 500));
       // Loki'nin sesi tamamen bitsin, sonra mikrofonu aç (yoksa kendi sesini "senin cevabın" sanıyor)
-      if (callRef.current && !hush.current) { await new Promise((r) => setTimeout(r, 700)); if (callRef.current && !hush.current) startListening(); }
+      if (callRef.current && !hush.current && !ART) { await new Promise((r) => setTimeout(r, 700)); if (callRef.current && !hush.current) startListening(); }
     } catch (e) {
       setErr((e as Error).message + (callRef.current ? " · Tekrar söyleyebilirsin." : ""));
       setBusy(false);

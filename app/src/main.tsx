@@ -9,7 +9,7 @@ import { startStudyClock } from "./lib/stats";
 import { setupNative } from "./native";
 
 // Yeni sürüm yüklenince (service worker değişince) sayfayı bir kez yenile: eski sürümde kalınmasın
-if ("serviceWorker" in navigator) {
+if ("serviceWorker" in navigator && import.meta.env.VITE_ARTIFACT !== "1") {
   let reloaded = false;
   navigator.serviceWorker.addEventListener("controllerchange", () => { if (!reloaded) { reloaded = true; location.reload(); } });
   setInterval(() => navigator.serviceWorker.getRegistration().then((r) => r?.update()).catch(() => null), 30 * 60 * 1000);

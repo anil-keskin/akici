@@ -15,6 +15,14 @@ export interface Meta { words: number; sentences: number; phrases: number; wordC
 
 const cache = new Map<string, Promise<unknown>>();
 export function load<T>(name: string): Promise<T> {
+  // Claude Yapıtları sürümünde kitaplar ~50'şerli paketlerde (dosya sayısı sınırı): books/<id>.json → paketten çıkar
+  if (import.meta.env.VITE_ARTIFACT === "1" && /^books\/(?!index\.json).+\.json$/.test(name)) {
+    const id = name.slice(6, -5);
+    return load<Record<string, number>>("books-packs.json").then((m) => load<Record<string, T>>(`books-pack-${m[id]}.json`)).then((p) => {
+      if (!p[id]) throw new Error(`${name} bulunamadı`);
+      return p[id];
+    });
+  }
   if (!cache.has(name)) {
     cache.set(name, fetch(`${import.meta.env.BASE_URL}data/${name}`).then((r) => {
       if (!r.ok) throw new Error(`${name} yüklenemedi (${r.status})`);

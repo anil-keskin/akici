@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { ART } from "../lib/artifact";
 import { Flame, Repeat, Sparkles, Trophy, Cloud, MessageCircle, Dices } from "lucide-react";
 import { TrackIcon } from "../components/TrackIcon";
 import { motion } from "motion/react";
@@ -116,7 +117,7 @@ export default function Home() {
         </div>
       )}
 
-      {noBackup && (
+      {noBackup && !ART && (
         <button className="btn ghost" style={{ justifyContent: "flex-start" }} onClick={() => go("/ayarlar")}><Cloud size={18} color="var(--mint)" /> İlerlemeni yedekle (telefon değişse de kaybolmaz)</button>
       )}
       <WordSheet w={open} onClose={() => setOpen(null)} />
