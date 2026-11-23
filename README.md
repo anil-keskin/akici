@@ -31,3 +31,4 @@ Ayrıntılar: `docs/arastirma.md`, `docs/guvenlik-tasarimi.md`.
 - [ ] Android: `npx cap add android` ve APK derleme (SDK 35/36 ve JDK 21 hazır: `E:\RE\bin\jdk21`)
 - [ ] PWA kurulumunu (service worker) gerçek Chrome'da doğrula; uygulama içi panelde kayıt hatası veriyor
 - [ ] KULLANICI: uygulamayı dene; beğenmediğin yerleri söyle
+- [ ] KULLANICI: yeni Gemini anahtarı al, Google AI Studio'da aylık 5 $ limit koy, `anahtar-gir.bat` ile gir (Gemini sadece İngilizce, Groq dolunca; tavan 200/gün, 2500/ay)
