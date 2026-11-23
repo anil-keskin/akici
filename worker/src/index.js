@@ -1,9 +1,9 @@
 // Akıcı AI aracı: uygulama → bu Worker → Gemini. API anahtarı sadece Cloudflare'in gizli ayarında (GEMINI_KEY) durur.
 // Güvenlik: sadece POST /chat, boyut sınırları, IP + cihaz başına hız sınırı, sabit model, içerik LOGLANMAZ.
-// Ücret güvencesi: faturalandırması KAPALI (ücretsiz kota) bir Gemini anahtarı kullan; en kötü durumda kota dolar, fatura çıkmaz.
-// Sırayla denenir: ücretsiz kotada açık olan ilk model kullanılır
-const MODELS = ["gemini-flash-latest", "gemini-flash-lite-latest", "gemini-2.5-flash", "gemini-2.5-flash-lite", "gemini-2.0-flash"];
-const MODEL = MODELS[0];
+// Ücretli Gemini SADECE İngilizce uygulama içindir (X-Lokilingo-App: en) ve sadece Groq dolunca çalışır.
+// Ücret güvencesi: sabit ucuz model, istek/çıktı sınırı, günlük ve aylık çağrı tavanı + Google tarafında harcama limiti.
+const MODEL = "gemini-3.1-flash-lite";
+const GEMINI_DAY_CAP = 200, GEMINI_MONTH_CAP = 2500, GEMINI_MAX_INPUT = 16000, GEMINI_MAX_OUTPUT = 1200;
 let geminiDeadUntil = 0; // bu Worker kopyasında Gemini geçici olarak atlanır
 const CF_MODEL = "@cf/meta/llama-3.3-70b-instruct-fp8-fast";
 const UPSTREAM = "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions";
@@ -265,7 +265,18 @@ async function sync(req, url, env) {
   return json({ error: "bulunamadı" }, 404);
 }
 
-const CORS = { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS", "Access-Control-Allow-Headers": "Content-Type, X-Akici-Device, Range", "Access-Control-Max-Age": "86400" };
+// Ücretli çağrı sayacı: tavan aşılırsa Gemini o gün/ay hiç çağrılmaz (fatura sürprizi olmasın)
+async function geminiBudget(env) {
+  const now = new Date().toISOString();
+  const dk = "gem:d:" + now.slice(0, 10), mk = "gem:m:" + now.slice(0, 7);
+  const [d, m] = await Promise.all([env.SYNC.get(dk), env.SYNC.get(mk)]);
+  const dn = Number(d || 0), mn = Number(m || 0);
+  if (dn >= GEMINI_DAY_CAP || mn >= GEMINI_MONTH_CAP) return false;
+  await Promise.all([env.SYNC.put(dk, String(dn + 1), { expirationTtl: 3 * 86400 }), env.SYNC.put(mk, String(mn + 1), { expirationTtl: 40 * 86400 })]);
+  return true;
+}
+
+const CORS = { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS", "Access-Control-Allow-Headers": "Content-Type, X-Akici-Device, X-Lokilingo-App, Range", "Access-Control-Max-Age": "86400" };
 
 const json = (obj, status = 200) => new Response(JSON.stringify(obj), { status, headers: { ...CORS, "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store" } });
 
@@ -320,16 +331,15 @@ export default {
       }
     }
     // B planı: Gemini (anahtar varsa). Ödeme/kota hatası alınca 30 dk hiç deneme (boşa bekletmesin).
-    if (env.GEMINI_KEY && Date.now() > geminiDeadUntil) {
-      for (const model of MODELS.slice(0, 2)) {
-        const r = await fetch(UPSTREAM, {
-          method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${env.GEMINI_KEY}` },
-          body: JSON.stringify({ model, messages: clean, max_tokens: maxTokens, ...(body.json ? { response_format: { type: "json_object" } } : {}) }),
-        });
-        if (r.ok) { const d = await r.json(); return json({ content: d.choices?.[0]?.message?.content ?? "", via: "gemini:" + model, tried }); }
-        tried.push(`${model}:${r.status}`);
-        if ([401, 402, 403, 429].includes(r.status)) { geminiDeadUntil = Date.now() + 30 * 60_000; break; }
-      }
+    const inputSize = clean.reduce((n, m) => n + m.content.length, 0);
+    if (env.GEMINI_KEY && req.headers.get("X-Lokilingo-App") === "en" && inputSize <= GEMINI_MAX_INPUT && Date.now() > geminiDeadUntil && await geminiBudget(env)) {
+      const r = await fetch(UPSTREAM, {
+        method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${env.GEMINI_KEY}` },
+        body: JSON.stringify({ model: MODEL, messages: clean, max_tokens: Math.min(maxTokens, GEMINI_MAX_OUTPUT), reasoning_effort: "low", ...(body.json ? { response_format: { type: "json_object" } } : {}) }),
+      });
+      if (r.ok) { const d = await r.json(); return json({ content: d.choices?.[0]?.message?.content ?? "", via: "gemini:" + MODEL, tried }); }
+      tried.push(`${MODEL}:${r.status}`);
+      if ([401, 402, 403, 429].includes(r.status)) geminiDeadUntil = Date.now() + 30 * 60_000;
     }
     // C planı: Cloudflare Workers AI (hesapta günlük ücretsiz kota)
     try {

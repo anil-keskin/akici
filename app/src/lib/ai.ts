@@ -88,7 +88,7 @@ async function raw(messages: Msg[], maxTokens: number, json: boolean): Promise<s
       if (i) await new Promise((r) => setTimeout(r, i * 1500));
       const ctl = new AbortController(); const to = setTimeout(() => ctl.abort(), 25000);
       try {
-        const r = await fetch(`${AKICI_AI}/chat`, { method: "POST", headers: { "Content-Type": "application/json", "X-Akici-Device": deviceId() }, body, signal: ctl.signal });
+        const r = await fetch(`${AKICI_AI}/chat`, { method: "POST", headers: { "Content-Type": "application/json", "X-Akici-Device": deviceId(), "X-Lokilingo-App": "en" }, body, signal: ctl.signal });
         const d = await r.json().catch(() => ({}));
         if (r.ok && (d.content || "").trim()) return d.content;
         last = d.error ? `Loki AI: ${d.error}` : r.ok ? "Loki AI boş cevap verdi" : `Loki AI hatası ${r.status}`;
