@@ -8,6 +8,7 @@ let geminiDeadUntil = 0; // bu Worker kopyasında Gemini geçici olarak atlanır
 const CF_MODEL = "@cf/meta/llama-3.3-70b-instruct-fp8-fast";
 const UPSTREAM = "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions";
 // YouTube araması: resmi YouTube Data API v3 (anahtar gizli ayarda: YOUTUBE_KEY). Sadece altyazılı, aile dostu videolar.
+const langOf = (v) => (v === "de" ? "de" : "en");
 async function ytSearch(url, req, env) {
   const YK = env.YOUTUBE_KEY;
   if (!YK) return json({ error: "YouTube araması henüz kurulmadı (youtube-anahtar.bat)" }, 503);
@@ -17,7 +18,7 @@ async function ytSearch(url, req, env) {
   const q = (url.searchParams.get("q") || "").slice(0, 100).trim();
   if (!q) return json({ items: [] });
   const api = new URL("https://www.googleapis.com/youtube/v3/search");
-  Object.entries({ part: "snippet", type: "video", maxResults: "20", q, videoCaption: "closedCaption", relevanceLanguage: "en", safeSearch: "strict", videoEmbeddable: "true", key: YK })
+  Object.entries({ part: "snippet", type: "video", maxResults: "20", q, videoCaption: "closedCaption", relevanceLanguage: langOf(url.searchParams.get("lang")), safeSearch: "strict", videoEmbeddable: "true", key: YK })
     .forEach(([k, v]) => api.searchParams.set(k, v));
   const r = await fetch(api, { cf: { cacheTtl: 3600, cacheEverything: true } });
   if (!r.ok) { const t = (await r.text()).slice(0, 300); return json({ error: r.status === 403 ? "YouTube araması için Google hesabında YouTube Data API açılmalı" : `YouTube hatası ${r.status}`, detail: t.replace(/AIza[\w-]+/g, "***") }, 502); }
@@ -26,9 +27,11 @@ async function ytSearch(url, req, env) {
 }
 
 // Anahtarsız: seçili eğitim kanallarının herkese açık RSS akışı (son ~15 video)
+const DE_CHANNELS = { easyde: "UCbxb2fqe9oNgglAoYqsYOtQ", dw: "UCxUWIEL-USsiPak0Qy6_vVg", marija: "UCCAI6jmeW5hWz2-jaLPqLUQ", anja: "UCZwegPHTG4gvnR0WLzaq5OQ", dfd: "UC_0KCpDLHCQd3fNNtfQPyRQ" };
 const CHANNELS = {
   bbc: "UCHaHD477h-FeBbVh9Sh7syA", voa: "UCKyTokYo0nK2OA-az-sDijA", lucy: "UCz4tgANd4yy8Oe0iXCdSWfA", vanessa: "UCxJGMJbjokfnr2-s4_RXPxQ",
-  teded: "UCsooa4yRKGN_zEE8iknghZA", kurz: "UCsXVk37bltHxD1rDPwtNM8Q", ted: "UCAuUUnT6oDeKwE6v1NGQxug", khan: "UC4a-Gbdw7vOaccHmFo40b9g",
+  teded: "UCsooa4yRKGN_zEE8iknghZA",
+  ...DE_CHANNELS, kurz: "UCsXVk37bltHxD1rDPwtNM8Q", ted: "UCAuUUnT6oDeKwE6v1NGQxug", khan: "UC4a-Gbdw7vOaccHmFo40b9g",
 };
 async function ytFeed(url) {
   const id = CHANNELS[url.searchParams.get("ch") || ""];
@@ -48,6 +51,7 @@ async function ytFeed(url) {
 
 // Konuşmayı yazıya çevir: Groq Whisper (ses saklanmaz, sadece iletilir). En fazla ~30 sn / 3 MB.
 async function stt(req, env) {
+  const lang = langOf(new URL(req.url).searchParams.get("lang"));
   if (!env.GROQ_KEY) return json({ error: "ses tanıma kurulmadı" }, 503);
   const ip = req.headers.get("CF-Connecting-IP") || "?";
   const device = (req.headers.get("X-Akici-Device") || "").slice(0, 64) || ip;
@@ -62,7 +66,7 @@ async function stt(req, env) {
   const fd = new FormData();
   fd.append("file", new Blob([audio], { type }), "speech." + ext);
   fd.append("model", "whisper-large-v3-turbo");
-  fd.append("language", "en");
+  fd.append("language", lang);
   fd.append("response_format", "json");
   const r = await fetch("https://api.groq.com/openai/v1/audio/transcriptions", { method: "POST", headers: { Authorization: `Bearer ${env.GROQ_KEY}` }, body: fd });
   if (r.status === 429) return json({ error: "günlük ses kotası doldu; yarın tekrar dene" }, 429);
@@ -165,7 +169,8 @@ async function podTranscript(req, env) {
   let body; try { body = await req.json(); } catch { return json({ error: "geçersiz istek" }, 400); }
   const audio = safeUrl(String(body?.audio || ""));
   if (!audio) return json({ error: "geçersiz ses adresi" }, 400);
-  const key = "pt4:" + (await sha256hex(audio));
+  const lang = langOf(body?.lang);
+  const key = (lang === "en" ? "pt4:" : "pt4" + lang + ":") + (await sha256hex(audio));
   const cached = await env.SYNC.get(key, "json");
   if (cached) return json({ lines: cached, cached: true });
   const [a, b] = await Promise.all([env.PER_IP.limit({ key: "ptr:" + ip }), env.PER_DEVICE.limit({ key: "ptr:" + device })]);
@@ -182,7 +187,7 @@ async function podTranscript(req, env) {
   const fd = new FormData();
   fd.append("url", final);
   fd.append("model", "whisper-large-v3-turbo");
-  fd.append("language", "en");
+  fd.append("language", lang);
   fd.append("response_format", "verbose_json");
   fd.append("timestamp_granularities[]", "segment");
   const r = await fetch("https://api.groq.com/openai/v1/audio/transcriptions", { method: "POST", headers: { Authorization: `Bearer ${env.GROQ_KEY}` }, body: fd });
