@@ -335,10 +335,11 @@ export default {
     if (env.GEMINI_KEY && req.headers.get("X-Lokilingo-App") === "en" && inputSize <= GEMINI_MAX_INPUT && Date.now() > geminiDeadUntil && await geminiBudget(env)) {
       const r = await fetch(UPSTREAM, {
         method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${env.GEMINI_KEY}` },
-        body: JSON.stringify({ model: MODEL, messages: clean, max_tokens: Math.min(maxTokens, GEMINI_MAX_OUTPUT), reasoning_effort: "low", ...(body.json ? { response_format: { type: "json_object" } } : {}) }),
+        body: JSON.stringify({ model: MODEL, messages: clean, max_tokens: Math.min(maxTokens, GEMINI_MAX_OUTPUT), reasoning_effort: "none", ...(body.json ? { response_format: { type: "json_object" } } : {}) }),
       });
-      if (r.ok) { const d = await r.json(); return json({ content: d.choices?.[0]?.message?.content ?? "", via: "gemini:" + MODEL, tried }); }
-      tried.push(`${MODEL}:${r.status}`);
+      let text = "";
+      if (r.ok) { const d = await r.json(); text = d.choices?.[0]?.message?.content ?? ""; if (text.trim()) return json({ content: text, via: "gemini:" + MODEL, tried }); }
+      tried.push(`${MODEL}:${r.ok ? "bos" : r.status}`); // boş cevap da başarısız sayılır, yedeğe geç
       if ([401, 402, 403, 429].includes(r.status)) geminiDeadUntil = Date.now() + 30 * 60_000;
     }
     // C planı: Cloudflare Workers AI (hesapta günlük ücretsiz kota)
@@ -349,7 +350,7 @@ export default {
       const text = typeof out?.response === "string" ? out.response : JSON.stringify(out?.response ?? "");
       return json({ content: text, via: "cf", tried });
     } catch (e) {
-      if (String(e).includes("4006") || String(e).toLowerCase().includes("neuron")) return json({ error: "günlük ücretsiz kota doldu; yarın tekrar dene" }, 429);
+      if (String(e).includes("4006") || String(e).toLowerCase().includes("neuron")) return json({ error: "günlük ücretsiz kota doldu; yarın tekrar dene", tried }, 429);
       return json({ error: "yapay zekâ şu an yanıt vermiyor", tried }, 502);
     }
   },
