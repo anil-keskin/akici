@@ -18,6 +18,14 @@ export interface Dictation {
   onState(fn: (e: { state: string; reason?: string }) => void): () => void;
 }
 
+export interface Tts {
+  speak(text: string, opts?: { rate?: number; language?: string; voice?: string }): Promise<{ playedMs: number }>;
+  stop(): Promise<void>;
+}
+/** Claude sesi (tts): yapıtlarda tarayıcının ses motoru çalışmıyor */
+export let ttsReady: Tts | null = null;
+if (ART) (use("tts") as Promise<Tts | null>).then((t) => { ttsReady = t; });
+
 let samp: Promise<Sample | null> | null = null;
 let dict: Promise<Dictation | null> | null = null;
 export const sampleCap = () => (samp ??= use("sample") as Promise<Sample | null>);

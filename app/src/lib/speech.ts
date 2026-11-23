@@ -2,7 +2,7 @@
 // Öncelik: önceden üretilmiş doğal ses (Kokoro) → tarayıcı/Android sesi.
 // Tanıma: yerel Whisper sunucusu (ses bilgisayardan çıkmaz) → tarayıcı tanıması (Google/Microsoft'a gider, onaylı).
 import { getSettings } from "./settings";
-import { ART, dictReady, type Dictation } from "./artifact";
+import { ART, dictReady, ttsReady, type Dictation } from "./artifact";
 import { addStat } from "./stats";
 
 export function fnv1a(s: string): string {
@@ -39,6 +39,7 @@ export function stopSpeaking() {
   const d = pendingDone; pendingDone = null; d?.();
   try { speechSynthesis?.cancel(); } catch { /* */ }
   native.stopSpeak?.();
+  if (ART) ttsReady?.stop().catch(() => null);
 }
 
 const MALE = /(guy|davis|tony|jason|andrew|brian|eric|roger|steffan|christopher|ryan|thomas|george|david|mark|james|daniel|male|man)/i;
@@ -81,6 +82,19 @@ export function isSpeaking() { return speakingNow; }
 
 /** Metni okur. Bittiğinde (ya da durdurulunca) resolve olur. */
 export async function speak(text: string, opts: { rate?: number; slow?: boolean; voice?: "female" | "male" } = {}): Promise<void> {
+  // Claude Yapıtları: tarayıcı sesi yok → Claude sesi. Tıklamanın içinde, hiçbir şey beklemeden başlamalı;
+  // metin tek parça gider (paragraf başına bir başlatma), hız 0,7–1,5 arası.
+  if (ART) {
+    const my = ++speakGen;
+    const d = pendingDone; pendingDone = null; d?.();
+    const t = ttsReady;
+    if (!t || !text.trim()) return;
+    const r = Math.min(1.5, Math.max(0.7, (opts.rate ?? getSettings().rate) * (opts.slow ? 0.75 : 1)));
+    speakingNow = true;
+    await new Promise<void>((res) => { pendingDone = res; t.speak(text.trim().slice(0, 2000), { rate: r, language: "en" }).catch(() => null).finally(() => res()); });
+    if (my === speakGen) speakingNow = false;
+    return;
+  }
   stopSpeaking();
   const my = ++speakGen;
   const map = await audioMap();
