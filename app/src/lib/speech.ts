@@ -127,16 +127,62 @@ async function speakOne(text: string, opts: { rate?: number; slow?: boolean; voi
     const guard = window.setTimeout(() => res(), 4000 + text.length * 120 / Math.max(0.4, rate)); // geç bitsin: erken açılan mikrofon Loki'nin sesini yakalamasın
     native.speak!(text, s.accent, rate).catch(() => null).finally(() => { clearTimeout(guard); res(); });
   });
-  if (!("speechSynthesis" in window)) return;
-  return new Promise((res) => {
-    pendingDone = res;
+  if (s.voiceURI === "cloud" || synthBroken || !(await hasEnglishVoice())) return cloudSpeak(text, rate, opts.voice);
+  const started = await new Promise<boolean>((res) => {
+    pendingDone = () => res(true);
     const u = new SpeechSynthesisUtterance(text);
     const v = pickVoice(opts.voice); if (v) u.voice = v;
     u.lang = v?.lang || s.accent; u.rate = rate;
-    u.onend = () => res(); u.onerror = () => res();
+    let began = false;
+    u.onstart = () => { began = true; };
+    u.onend = () => res(true);
+    u.onerror = (e) => res(began || e.error === "interrupted" || e.error === "canceled");
+    // Ses hiç başlamadıysa (şirket ağı çevrimiçi sesi engelliyor vb.) bulut sesine geç
+    window.setTimeout(() => { if (!began && !speechSynthesis.speaking) { try { speechSynthesis.cancel(); } catch { /* */ } res(false); } }, 2500);
     // Güvence: bazı tarayıcılarda "bitti" haberi hiç gelmez → tahmini süre + 3 sn sonra devam et
-    window.setTimeout(() => res(), 3000 + text.length * 110 / Math.max(0.4, rate));
+    window.setTimeout(() => res(true), 3000 + text.length * 110 / Math.max(0.4, rate));
     speechSynthesis.speak(u);
+  });
+  if (!started) { synthBroken = true; return cloudSpeak(text, rate, opts.voice); }
+}
+
+/* Bulut sesi: bilgisayarda İngilizce ses yoksa ya da çalışmıyorsa (ör. şirket bilgisayarı) Cloudflare'den okunur.
+   Aynı cümle ikinci kez indirilmez (bellekte saklanır). */
+let synthBroken = false;
+let voicesWait: Promise<void> | null = null;
+async function hasEnglishVoice(): Promise<boolean> {
+  if (!("speechSynthesis" in window)) return false;
+  if (!speechSynthesis.getVoices().length) {
+    voicesWait ??= new Promise((r) => { speechSynthesis.addEventListener("voiceschanged", () => r(), { once: true }); setTimeout(r, 1200); });
+    await voicesWait;
+  }
+  return englishVoices().length > 0;
+}
+const cloudCache = new Map<string, string>();
+export async function cloudSpeak(text: string, rate: number, gender?: "female" | "male"): Promise<void> {
+  const gb = getSettings().accent === "en-GB";
+  const voice = gender === "male" ? (gb ? "helios" : "orion") : (gb ? "athena" : "asteria");
+  const my = speakGen;
+  const k = voice + "|" + text;
+  let url = cloudCache.get(k);
+  if (!url) {
+    let dev = "anon"; try { dev = localStorage.getItem("akici-device") || "anon"; } catch { /* */ }
+    try {
+      const { AKICI_AI } = await import("./ai");
+      const r = await fetch(`${AKICI_AI}/tts`, { method: "POST", headers: { "Content-Type": "application/json", "X-Akici-Device": dev }, body: JSON.stringify({ text: text.slice(0, 400), voice }), signal: AbortSignal.timeout(15000) });
+      if (!r.ok) return;
+      url = URL.createObjectURL(await r.blob());
+      if (cloudCache.size > 300) { const [old, u] = cloudCache.entries().next().value!; URL.revokeObjectURL(u); cloudCache.delete(old); }
+      cloudCache.set(k, url);
+    } catch { return; }
+  }
+  if (my !== speakGen) return;
+  return new Promise((res) => {
+    pendingDone = res;
+    const a = new Audio(url);
+    a.playbackRate = Math.min(2, Math.max(0.5, rate)); a.preservesPitch = true; currentAudio = a;
+    a.onended = () => res(); a.onerror = () => res();
+    a.play().catch(() => res());
   });
 }
 if ("speechSynthesis" in window) speechSynthesis.onvoiceschanged = () => { /* sesler yüklendi */ };

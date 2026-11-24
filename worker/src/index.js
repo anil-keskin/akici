@@ -49,6 +49,33 @@ async function ytFeed(url) {
   return json({ items });
 }
 
+// Bulut sesi (İngilizce): bilgisayarda İngilizce ses yoksa (ör. şirket bilgisayarı) uygulama buradan okur.
+// Cloudflare Workers AI ücretsiz payı; metin saklanmaz, aynı metin önbellekten gelir (pay harcanmaz).
+const TTS_VOICES = new Set(["asteria", "luna", "stella", "athena", "hera", "orion", "arcas", "perseus", "angus", "orpheus", "helios", "zeus"]);
+async function tts(req, env) {
+  const ip = req.headers.get("CF-Connecting-IP") || "?";
+  const device = (req.headers.get("X-Akici-Device") || "").slice(0, 64) || ip;
+  const body = await req.json().catch(() => ({}));
+  const text = String(body.text || "").replace(/s+/g, " ").trim();
+  const voice = TTS_VOICES.has(body.voice) ? body.voice : "asteria";
+  if (!text || text.length > 400) return json({ error: "metin 1-400 karakter olmalı" }, 400);
+  const hash = [...new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(voice + "|" + text)))].map((b) => b.toString(16).padStart(2, "0")).join("");
+  const key = new Request("https://tts.cache/" + hash);
+  const hit = await caches.default.match(key);
+  if (hit) return new Response(hit.body, { headers: { ...CORS, "Content-Type": "audio/mpeg", "X-Cache": "hit" } });
+  const [a, b] = await Promise.all([env.PER_IP.limit({ key: "tts:" + ip }), env.PER_DEVICE.limit({ key: "tts:" + device })]);
+  if (!a.success || !b.success) return json({ error: "çok hızlı; biraz bekle" }, 429);
+  let out;
+  try { out = await env.AI.run("@cf/deepgram/aura-1", { text, speaker: voice, encoding: "mp3" }); }
+  catch (e) { return json({ error: "bulut sesi şu an yok", detail: String(e.message || e).slice(0, 120) }, 503); }
+  const buf = out instanceof ReadableStream ? await new Response(out).arrayBuffer()
+    : out?.audio ? Uint8Array.from(atob(out.audio), (c) => c.charCodeAt(0)).buffer
+    : out instanceof ArrayBuffer ? out : out?.buffer || null;
+  if (!buf || !buf.byteLength) return json({ error: "boş ses" }, 502);
+  await caches.default.put(key, new Response(buf, { headers: { "Content-Type": "audio/mpeg", "Cache-Control": "public, max-age=2592000" } }));
+  return new Response(buf, { headers: { ...CORS, "Content-Type": "audio/mpeg", "X-Cache": "miss" } });
+}
+
 // Konuşmayı yazıya çevir: Groq Whisper (ses saklanmaz, sadece iletilir). En fazla ~30 sn / 3 MB.
 async function stt(req, env) {
   const lang = langOf(new URL(req.url).searchParams.get("lang"));
@@ -288,6 +315,7 @@ export default {
     if (req.method === "GET" && url.pathname === "/yt") return ytSearch(url, req, env);
     if (req.method === "GET" && url.pathname === "/ytfeed") return ytFeed(url);
     if (req.method === "POST" && url.pathname === "/stt") return stt(req, env);
+    if (req.method === "POST" && url.pathname === "/tts") return tts(req, env);
     if (url.pathname.startsWith("/sync/")) return sync(req, url, env);
     if (req.method === "GET" && url.pathname === "/pod/search") return podSearch(url, req, env);
     if (req.method === "GET" && url.pathname === "/pod/feed") return podFeed(url, req, env);

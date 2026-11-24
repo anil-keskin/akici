@@ -49,6 +49,7 @@ export default function Settings() {
         <Row l="Aksan"><select className="input" value={s.accent} onChange={(e) => saveSettings({ accent: e.target.value as "en-US", voiceURI: "" })}><option value="en-US">Amerikan</option><option value="en-GB">İngiliz</option></select></Row>
         <Row l="Ses"><select className="input" value={s.voiceURI} onChange={(e) => saveSettings({ voiceURI: e.target.value })}>
           <option value="">Otomatik (en doğal olanı)</option>
+          <option value="cloud">Bulut sesi (her bilgisayarda çalışır)</option>
           {voices.map((v) => <option key={v.voiceURI} value={v.voiceURI}>{v.name} · {v.lang}</option>)}</select></Row>
         <Row l={`Konuşma hızı · ${s.rate}×`}><input type="range" min={0.5} max={1.3} step={0.05} value={s.rate} onChange={(e) => saveSettings({ rate: Number(e.target.value) })} /></Row>
         <Row l="Otomatik seslendir"><input type="checkbox" checked={s.autoplay} onChange={(e) => saveSettings({ autoplay: e.target.checked })} /></Row>
