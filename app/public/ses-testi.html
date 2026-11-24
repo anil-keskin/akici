@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="tr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Lokilingo ses testi</title>
+<style>
+body{font-family:system-ui,sans-serif;background:#f7f5ff;color:#222;max-width:640px;margin:0 auto;padding:16px}
+button{font-size:18px;padding:14px 20px;border:0;border-radius:14px;background:#6c5ce7;color:#fff;cursor:pointer;width:100%;margin:6px 0}
+li{margin:8px 0;font-size:17px}.ok{color:#0a7a3a}.no{color:#c0392b}
+</style></head><body>
+<h2>Ses testi</h2>
+<p>Hoparlör ya da kulaklık açık olsun. Butona bas, 3 ayrı ses çalacak. Sonra aşağıdaki listenin ekran görüntüsünü gönder.</p>
+<button id="go">Testi başlat</button>
+<ol id="out"></ol>
+<script>
+const out = document.getElementById("out");
+const log = (ok, t) => { const li = document.createElement("li"); li.className = ok ? "ok" : "no"; li.textContent = (ok ? "✔ " : "✘ ") + t; out.appendChild(li); };
+const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+document.getElementById("go").onclick = async () => {
+  out.innerHTML = "";
+  log(true, "Tarayıcı: " + (navigator.userAgent.match(/(Edg|OPR|Chrome|Firefox)\/\d+/) || ["?"])[0]);
+  // 1) Bip: hoparlör çalışıyor mu
+  try {
+    const ac = new (window.AudioContext || window.webkitAudioContext)();
+    await ac.resume();
+    const o = ac.createOscillator(), g = ac.createGain(); g.gain.value = 0.2; o.frequency.value = 660;
+    o.connect(g).connect(ac.destination); o.start(); await wait(600); o.stop();
+    log(ac.state === "running", "1) Bip sesi çalındı (duydun mu?) · durum: " + ac.state);
+  } catch (e) { log(false, "1) Bip çalınamadı: " + e.message); }
+  await wait(500);
+  // 2) Bilgisayarın kendi sesleri
+  let vs = speechSynthesis ? speechSynthesis.getVoices() : [];
+  if (!vs.length) { await wait(1500); vs = speechSynthesis ? speechSynthesis.getVoices() : []; }
+  const en = vs.filter((v) => v.lang.startsWith("en"));
+  log(en.length > 0, "2) Bilgisayardaki sesler: toplam " + vs.length + ", İngilizce " + en.length + (en[0] ? " (" + en.slice(0, 3).map((v) => v.name).join(", ") + ")" : ""));
+  if (en.length) {
+    const started = await new Promise((res) => {
+      const u = new SpeechSynthesisUtterance("This is the computer voice."); u.voice = en[0]; u.lang = en[0].lang;
+      u.onstart = () => res("başladı"); u.onerror = (e) => res("hata: " + e.error);
+      speechSynthesis.speak(u); setTimeout(() => res("hiç başlamadı"), 4000);
+    });
+    log(started === "başladı", "   Bilgisayar sesi: " + started);
+    await wait(2500);
+  }
+  // 3) Bulut sesi
+  try {
+    const t0 = performance.now();
+    const r = await fetch("https://akici-ai.akici-app.workers.dev/tts", { method: "POST", headers: { "Content-Type": "application/json", "X-Akici-Device": "ses-testi" }, body: JSON.stringify({ text: "This is the cloud voice. Can you hear me?", voice: "asteria" }), signal: AbortSignal.timeout(15000) });
+    if (!r.ok) { log(false, "3) Bulut sesi sunucusu: " + r.status + " " + (await r.text()).slice(0, 120)); return; }
+    const b = await r.blob();
+    log(b.size > 1000, "3) Bulut sesi indi: " + Math.round(b.size / 1024) + " KB, " + Math.round(performance.now() - t0) + " ms");
+    const a = new Audio(URL.createObjectURL(b));
+    try { await a.play(); await wait(1500); log(a.currentTime > 0.3, "   Bulut sesi çalıyor mu: " + (a.currentTime > 0.3 ? "evet" : "hayır") + " (" + a.currentTime.toFixed(1) + " sn)"); }
+    catch (e) { log(false, "   Bulut sesi çalınamadı: " + e.name + " " + e.message); }
+  } catch (e) { log(false, "3) Bulut sesi sunucusuna ulaşılamadı: " + e.name + " " + e.message); }
+  // 4) Uygulama sürümü
+  try {
+    const regs = await navigator.serviceWorker?.getRegistrations?.();
+    log(true, "4) Kayıtlı önbellek: " + (regs ? regs.length : 0));
+  } catch { /* */ }
+};
+</script>
+</body></html>
